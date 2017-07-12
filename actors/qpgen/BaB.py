@@ -63,7 +63,7 @@ class BaB(Actor):
 
   @condition(action_input=['ref'], action_output=[])
   def setref(self, ref_v):
-    r = np.array(((ref_v/10.0)*0.55, 0, 0))
+    r = np.array(((-ref_v/10.0)*0.55, 0, 0))
     self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
         self.qp.numStates()*self.qp.horizon(), 1))
 
