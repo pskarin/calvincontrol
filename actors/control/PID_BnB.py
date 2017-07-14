@@ -14,7 +14,7 @@ class PID_BnB(Actor):
         v: Control value
     '''
 
-    @manage(['td', 'ti', 'tr', 'h', 'k', 'n' ,'beta', 'i', 'd', 'v', 'e', 'y', 'y_old', 'ad', 'bd', 'time_pre_sample']) # 
+    @manage(['td', 'ti', 'tr', 'h', 'k', 'n' ,'beta', 'i', 'd', 'v', 'e', 'y', 'y_old', 'ad', 'bd', 'time_prev_sample', 'y_ref']) # 
     def init(self, td=1., ti=5., tr=10., h=.05, k=-.2, n=10., beta=1.):
         self.td = td
         self.ti = ti
@@ -33,6 +33,8 @@ class PID_BnB(Actor):
         self.y_ref = 0.
 
         self.time_prev_sample = 0.
+        self.bd = 0.
+        self.ad = 0.
 
         self.setup()
 
