@@ -4,11 +4,11 @@ inner : control.PI_BnB(ti=0.0, tr=1.0, h=0.05, k=1.0, beta=1.0)*/
 
 mpc: qpgen.BaB()
 
-#ang : bab.SimReader(tick=0.02, device="/bbsim_out1", scale=0.785)
-#pos : bab.SimReader(tick=0.02, device="/bbsim_out2", scale=0.55)
-#act : bab.SimWriter(device="/bbsim_in")
+#ang : io.SimReader(tick=0.02, device="/bbsim_out1", scale=0.785)
+#pos : io.SimReader(tick=0.02, device="/bbsim_out2", scale=0.55)
+#act : io.SimWriter(device="/bbsim_in")
 
-dis : control.PacedValueIterator(tick=10.0, values=[0, 8.0, -8.0])
+dis : misc.PacedValueIterator(tick=10.0, values=[0, 8.0, -8.0])
 
 /* Connections */
 pos.value > mpc.position
