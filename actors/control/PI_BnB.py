@@ -18,7 +18,6 @@ class PI_BnB(Actor):
     def init(self, ti=0., tr=1., k=1., beta=1.): # Default parameter values from lab java code
         self.ti = ti
         self.tr = tr
-        self.h = h
         self.k = k 
         self.beta = beta
 
