@@ -14,12 +14,11 @@ class PID_BnB(Actor):
         v: Control value
     '''
 
-    @manage(['td', 'ti', 'tr', 'h', 'k', 'n' ,'beta', 'i', 'd', 'v', 'e', 'y', 'y_old', 'ad', 'bd', 'time_prev_sample', 'y_ref']) # 
-    def init(self, td=1., ti=5., tr=10., h=.05, k=-.2, n=10., beta=1.):
+    @manage(['td', 'ti', 'tr', 'k', 'n' ,'beta', 'i', 'd', 'v', 'e', 'y', 'y_old', 'ad', 'bd', 'time_prev_sample', 'y_ref']) # 
+    def init(self, td=1., ti=5., tr=10., k=-.2, n=10., beta=1.):
         self.td = td
         self.ti = ti
         self.tr = tr
-        self.h = h
         self.k = k 
         self.n = n
         self.beta = beta
