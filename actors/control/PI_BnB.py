@@ -55,6 +55,8 @@ class PI_BnB(Actor):
 
         # Update state
         #self.i += (self.k * dt / self.ti) * self.e * (dt / self.tr) * (float(input)-self.v)
+	
+	self.monitor_value = self.v	
 
         return (self.v, )
 

@@ -72,11 +72,14 @@ class PID_BnB(Actor):
         self.y_old = self.y
         #self.i += (self.k * self.h / self.ti) * self.e * (self.h / self.tr) * (float(input)-self.v)
 
+	self.monitor_value = self.v
+
         return (self.v, )
 
     @condition(['y_ref'],[])
     def set_ref(self, input):
         self.y_ref = float(input)
+	self.monitor_value = float(input)
 
     action_priority = (evaluate, set_ref)
     requires = ['calvinsys.native.python-time']#, 'calvinsys.io.stdout']
