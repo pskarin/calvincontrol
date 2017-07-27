@@ -6,7 +6,7 @@ ang : io.SimReader(tick=0.05, device="/bbsim_out1-0", scale=0.785)
 pos : io.SimReader(tick=0.05, device="/bbsim_out2-0", scale=0.55)
 act : io.SimWriter(device="/bbsim_in-0")
 
-dis : misc.PacedValueIterator(tick=10.0, values=[0, 5.0, -5.0])
+dis : misc.RandomIntervalRandomValueGenerator( tick_range=[5.0, 15.0], value_range=[-8.0, 8.0])
 
 /* Connections */
 pos.value > outer.y
