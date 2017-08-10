@@ -1,3 +1,5 @@
 *calvin.conf
 *.pyc
 *.DS_Store
+*.actortrace
+*.pem
