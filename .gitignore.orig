@@ -1,0 +1,8 @@
+*calvin.conf
+*.pyc
+*.DS_Store
+*.actortrace
+<<<<<<< HEAD
+*.pem
+=======
+>>>>>>> 56ab03bb3db01ddbf46f8a9436cc901966a7f93d

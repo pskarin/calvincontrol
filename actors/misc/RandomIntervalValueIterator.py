@@ -3,16 +3,18 @@
 # William Tärneberg 2017
 from calvin.actor.actor import Actor, manage, condition, stateguard
 
-class PacedValueIterator(Actor):
+import random as rnd
+
+class RandomIntervalValueIterator(Actor):
     """
     Sequentially pass a value from __values__ at __tick__
     Outputs:
         value: a value from __values__
     """
 
-    @manage(['tick', 'values', 'index', 'started'])
-    def init(self, tick, values):
-        self.tick = tick
+    @manage(['tick_range', 'values', 'index', 'started'])
+    def init(self, tick_range, values):
+        self.tick_range = tick_range
         self.values = values
         # Add exception for len(values) <= 2
         self.index = 0 
@@ -24,7 +26,7 @@ class PacedValueIterator(Actor):
         self.use('calvinsys.events.timer', shorthand='timer')
 
     def start(self):
-        self.timer = self['timer'].repeat(self.tick)
+        self.timer = self['timer'].once( rnd.uniform( self.tick_range[0], self.tick_range[1]))
         self.started = True
 
     def will_migrate(self):
@@ -44,8 +46,6 @@ class PacedValueIterator(Actor):
         value = self.values[self.index]
         self.index =  (self.index + 1)%len(self.values)
 
-	self.monitor_value = value
-
         return (value, )
 
     @stateguard(lambda self: self.timer and self.timer.triggered)
@@ -53,9 +53,10 @@ class PacedValueIterator(Actor):
     def trigger(self):
         self.timer.ack()
         value = self.values[self.index]
+        
         self.index =  (self.index + 1)%len(self.values)
 
-	self.monitor_value = value
+        self.start()
 
         return (value, )
 

@@ -2,6 +2,7 @@ import argparse
 import csv
 import matplotlib.pyplot as plt
 from matplotlib import rc
+from scipy import interpolate
 
 # Temp 
 import random as rnd
@@ -32,64 +33,64 @@ def produce(path):
 	# plt_diff_ts( [ ('ball_n_beam_pid:inner', 'evaluate'), ('ball_n_beam_pid:outer', 'evaluate')], axes[1])
 	# plt_ts( [ ('ball_n_beam_pid:inner', EXEC_T_LABEL), ('ball_n_beam_pid:outer', EXEC_T_LABEL)] , axes[2])
 
+	# plt_ctrl_ts( 
+	# 	[ ( ('actm', 'write'), 'DATA', 'Ang. vel.'), ( ('angm', 'trigger'), 'DATA', 'Angle'), ( ('posm', 'trigger'), 'DATA', 'Position')],
+	# 	[ ( ('mpc', 'setref'), 'DATA', 'Pos. set point')], 
+	# 	axes[0,0],		
+	# 	title='MPC',
+	# 	x_label='Time (%s)' % TIME_UNIT,
+	# 	y_label='Signal (V)',
+	# 	time_scale=TIME_SCALE)
 	plt_ctrl_ts( 
-		[ ( ('both:actm', 'write'), 'DATA', 'Ang. vel.'), ( ('both:angm', 'trigger'), 'DATA', 'Angle'), ( ('both:posm', 'trigger'), 'DATA', 'Position')],
-		[ ( ('both:mpc', 'setref'), 'DATA', 'Pos. set point')], 
-		axes[0,0],		
-		title='MPC',
-		x_label='Time (%s)' % TIME_UNIT,
-		y_label='Signal (V)',
-		time_scale=TIME_SCALE)
-	plt_ctrl_ts( 
-		[ ( ('both:act', 'write'), 'DATA', 'Ang. vel.'), ( ('both:ang', 'trigger'), 'DATA', 'Angle'), ( ('both:pos', 'trigger'), 'DATA', 'Position')], 
-		[ ( ('both:outer', 'evaluate'), 'DATA', 'Ang. set point'), ( ('both:outer', 'set_ref'), 'DATA', 'Pos. set point')], 
+		[ ( ('act', 'write'), 'DATA', 'Ang. vel.'), ( ('ang', 'trigger'), 'DATA', 'Angle'), ( ('pos', 'trigger'), 'DATA', 'Position')], 
+		[ ( ('outer', 'evaluate'), 'DATA', 'Ang. set point'), ( ('outer', 'set_ref'), 'DATA', 'Pos. set point')], 
 		axes[1,0],
 		title='PID',
 		x_label='Time (%s)' % TIME_UNIT,
 		y_label='Signal (V)',
 		time_scale=TIME_SCALE)
 
+	# plt_diff_ts( 
+	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# 	axes[0,1],
+	# 	title='MPC - Period')
 	plt_diff_ts( 
-		[ ( ('both:posm', 'trigger'), 'EXEC'), (('both:angm', 'trigger'), 'EXEC'), (('both:mpc', 'action'), 'EXEC')], 
-		axes[0,1],
-		title='MPC - Period')
-	plt_diff_ts( 
-		[ ( ('both:pos', 'trigger'), 'EXEC'), (('both:ang', 'trigger'), 'EXEC'), (('both:outer', 'evaluate'), 'EXEC'), (('both:inner', 'evaluate'), 'EXEC')],
+		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
 		axes[1,1],
 		title='PID - Period')
 
+	# plt_dist( 
+	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# 	axes[0,2],
+	# 	title='MPC - Period dist.')
 	plt_dist( 
-		[ ( ('both:posm', 'trigger'), 'EXEC'), (('both:angm', 'trigger'), 'EXEC'), (('both:mpc', 'action'), 'EXEC')], 
-		axes[0,2],
-		title='MPC - Period dist.')
-	plt_dist( 
-		[ ( ('both:pos', 'trigger'), 'EXEC'), (('both:ang', 'trigger'), 'EXEC'), (('both:outer', 'evaluate'), 'EXEC'), (('both:inner', 'evaluate'), 'EXEC')], 
+		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
 		axes[1,2],
 		title='PID - Period dist.')
 	
+	# plt_rel_phase(
+	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# 	axes[0,3])
 	plt_rel_phase(
-		[ ( ('both:posm', 'trigger'), 'EXEC'), (('both:angm', 'trigger'), 'EXEC'), (('both:mpc', 'action'), 'EXEC')], 
-		axes[0,3])
-	plt_rel_phase(
-		[ ( ('both:pos', 'trigger'), 'EXEC'), (('both:ang', 'trigger'), 'EXEC'), (('both:outer', 'evaluate'), 'EXEC'), (('both:inner', 'evaluate'), 'EXEC')], 
+		[ ( ('ang', 'trigger'), 'EXEC'), (('pos', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
 		axes[1,3])
 
+	# plt_cum_drift(
+	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# 	ref_period_set = [100000 for i in range(3)],
+	# 	ax = axes[0,4] )
 	plt_cum_drift(
-		[ ( ('both:posm', 'trigger'), 'EXEC'), (('both:angm', 'trigger'), 'EXEC'), (('both:mpc', 'action'), 'EXEC')], 
-		ref_period_set = [100000 for i in range(3)],
-		ax = axes[0,4] )
-	plt_cum_drift(
-		[ ( ('both:pos', 'trigger'), 'EXEC'), (('both:ang', 'trigger'), 'EXEC'), (('both:outer', 'evaluate'), 'EXEC'), (('both:inner', 'evaluate'), 'EXEC')],
-		ref_period_set = [77000 for i in range(4)],
+		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
+		ref_period_set = [10000 for i in range(4)],
 		ax = axes[1,4] )
 
-	plt_rel_phase(
-		[ ( ('both:mpc', 'action'), 'EXEC'), (('both:outer', 'evaluate'), 'EXEC'), (('both:inner', 'evaluate'), 'EXEC')], 
-		axes[0,5])
+	# plt_rel_phase(
+	# 	[ ( ('mpc', 'action'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
+	# 	axes[0,5])
 
 	plt_sys_error_ts(
-		[ (('both:posm', 'trigger'), 'DATA', 'MPC'), (('both:pos', 'trigger'), 'DATA', 'PID')], 
-		ref_target_set = [( ('both:mpc', 'setref'), 'DATA'), ( ('both:outer', 'set_ref'), 'DATA')],
+		[(('pos', 'trigger'), 'DATA', 'PID')], 
+		ref_target_set = [( ('outer', 'set_ref'), 'DATA')],
 		ax = axes[1,5],
 		title='Error',
 		x_label='Time (%s)' % TIME_UNIT,
@@ -97,20 +98,20 @@ def produce(path):
 		time_scale=TIME_SCALE
 		)
 
+	# plt_ts( 
+	# 	[ ( ('mpc', 'action'), 'DUR')], 
+	# 	axes[0,6],
+	# 	y_label='Execution time (\mu s)',
+	# 	title='MPC - Execution time')
 	plt_ts( 
-		[ ( ('both:mpc', 'action'), 'DUR')], 
-		axes[0,6],
-		y_label='Execution time (\mu s)',
-		title='MPC - Execution time')
-	plt_ts( 
-		[ (('both:outer', 'evaluate'), 'DUR'), (('both:inner', 'evaluate'), 'DUR')],
+		[ (('outer', 'evaluate'), 'DUR'), (('inner', 'evaluate'), 'DUR')],
 		axes[1,6],
 		y_label='Execution time (\mu s)',
 		title='PID - Execution time')
 
 
 	#plt.tight_layout()
-	plt.savefig('image_output.png', dpi=300, format='png')
+	#plt.savefig('image_output.png', dpi=300, format='png')
 	plt.show()
 	
 '''
@@ -212,7 +213,15 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 		if len(mp) >2:
 			label = mp[2]
 
-		ax.plot( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], label=label)
+		x = np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale)
+		y = target_data['VALUE']
+
+		ax.plot( x, y, label=label)
+
+		# tck = interpolate.splrep( x, y, s=2)
+		# x_new = x#np.linspace( min(x), max(x), int(len(x)/1))
+		# y_der = interpolate.splev( x, tck, der=0)
+		# ax.plot(x, y_der, label=label+" - Spline")
 
 	for mp in set_points:
 		target_data = data[ mp[0]][ mp[1]]
@@ -221,7 +230,7 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 		if len(mp) >2:
 			label = mp[2]
 
-		ax.step( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], linestyle='dashed', label=label)
+		ax.plot( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], drawstyle='steps-post', linestyle='dashed', label=label)
 
 	ax.legend()
 
@@ -397,7 +406,12 @@ def read_data(path):
 		reader = csv.reader(csvfile, delimiter=DELIMINATOR, quoting=csv.QUOTE_NONE)
 
 		for row in reader:
-			actor = row[ ACTOR_IDX]
+			try:
+				actor = row[ ACTOR_IDX].split(':')[1]
+			except IndexError:
+				print row
+				print row[ ACTOR_IDX]
+				
 			func = row[ FUNC_IDX]
 
 			# Make sure the dict is populated+
@@ -411,8 +425,6 @@ def read_data(path):
 				time_keeper[ actor][ 'T_ENTER'] = float(row[ TIME_IDX])
 
 			elif row[ ACTION_IDX] == 'trigger':
-				func = row[ FUNC_IDX]
-
 				# EXEC
 				big_struct[ (actor, func)]['EXEC'].append( float(row[ TIME_IDX]))
 
@@ -425,7 +437,10 @@ def read_data(path):
 				time_keeper[ actor][ 'FUNC_NAME'] = func
 
 			elif row[ ACTION_IDX] == 'exit' and time_keeper[ actor][ 'TRIGGERED']:
-				big_struct[ (actor, time_keeper[ actor][ 'FUNC_NAME'])][ 'DUR'].append( float(row[ TIME_IDX]) - time_keeper[ actor][ 'T_ENTER'])
+				try:
+					big_struct[ (actor, time_keeper[ actor][ 'FUNC_NAME'])][ 'DUR'].append( float(row[ TIME_IDX]) - time_keeper[ actor][ 'T_ENTER'])
+				except TypeError:
+					print row[ TIME_IDX]
 
 				time_keeper[ actor][ 'TRIGGERED'] = False
 				time_keeper[ actor][ 'FUNC_NAME'] = None
@@ -436,7 +451,7 @@ def read_data(path):
 
 	print ' --- Collected actor function pairs ---'
 	for (actor, func) in big_struct.keys():
-		print '\t%s -> %s' % (actor, func)
+		print '\t%s -> %s (#Exe:%i, #Val:%i)' % (actor, func, len(big_struct[ (actor, func)][ 'EXEC']), len(big_struct[ (actor, func)][ 'DATA'][ 'TIME']))
 
 	return big_struct
 
@@ -445,7 +460,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 
 	parser.add_argument('-p', action='store', dest='path',
-					type=str, help='Path to CSV file', default='calvin-both-100ms-piderr.log')
+					type=str, help='Path to CSV file', default='run1.actortrace')
 
 	results = parser.parse_args()
 
