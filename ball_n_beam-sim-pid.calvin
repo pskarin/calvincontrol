@@ -1,12 +1,12 @@
 /* Actors */
-outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, h=0.05, k=-0.2, n=10.0, beta=1.0)
-inner : control.PI_BnB(ti=0.0, tr=1.0, h=0.05, k=1.0, beta=1.0)
+outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
 
-ang : io.SimReader(tick=0.1, device="/bbsim_out1-0", scale=0.785)
-pos : io.SimReader(tick=0.1, device="/bbsim_out2-0", scale=0.55)
+ang : io.SimReader(tick=0.05, device="/bbsim_out1-0", scale=0.785)
+pos : io.SimReader(tick=0.05, device="/bbsim_out2-0", scale=0.55)
 act : io.SimWriter(device="/bbsim_in-0")
 
-dis : misc.PacedValueIterator(tick=10.0, values=[0, 8.0, -8.0])
+dis : misc.RandomIntervalRandomValueGenerator( tick_range=[5.0, 15.0], value_range=[-8.0, 8.0])
 
 /* Connections */
 pos.value > outer.y

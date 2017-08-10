@@ -1,1 +1,1 @@
-export PYTHONPATH=actors/qpgen:${PYTHONPATH}
+export PYTHONPATH=actors_qpgen/qpgen:${PYTHONPATH}

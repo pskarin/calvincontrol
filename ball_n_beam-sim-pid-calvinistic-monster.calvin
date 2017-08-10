@@ -1,0 +1,28 @@
+/* Actors */
+outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+
+ang : io.SimReader(tick=0.05, device="/bbsim_out1-0", scale=0.785)
+pos : io.SimReader(tick=0.05, device="/bbsim_out2-0", scale=0.55)
+act : io.SimWriter(device="/bbsim_in-0")
+
+dis : misc.PacedValueIterator(tick=10.0, values=[0, 5.0, -5.0])
+
+join_set : misc.PlotJoin(fig=0, plt=0, deliminiator=":")
+join_pos : misc.PlotJoin(fig=0, plt=1, deliminiator=":")
+join_ang : misc.PlotJoin(fig=0, plt=2, deliminiator=":")
+
+udp_set : net.SimpleUDPSender(address="130.235.203.239", port=9090)
+udp_pos : net.SimpleUDPSender(address="130.235.203.239", port=9090)
+udp_ang : net.SimpleUDPSender(address="130.235.203.239", port=9090)
+
+/* Connections */
+pos.value > outer.y, join_pos.val
+ang.value > inner.y, join_ang.val
+outer.v > inner.y_ref
+inner.v > act.value
+dis.value > outer.y_ref, join_set.val
+
+join_set.token > udp_set.data
+join_pos.token > udp_pos.data
+join_ang.token > udp_ang.data

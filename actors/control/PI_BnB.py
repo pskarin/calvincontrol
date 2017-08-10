@@ -14,11 +14,10 @@ class PI_BnB(Actor):
         v: Control value
     '''
 
-    @manage(['ti', 'tr', 'h', 'k', 'beta', 'i', 'v', 'e', 'time_prev_sample']) # 
-    def init(self, ti=0., tr=1., h=.05, k=1., beta=1.): # Default parameter values from lab java code
+    @manage(['ti', 'tr', 'k', 'beta', 'i', 'v', 'e', 'time_prev_sample']) # 
+    def init(self, ti=0., tr=1., k=1., beta=1.): # Default parameter values from lab java code
         self.ti = ti
         self.tr = tr
-        self.h = h
         self.k = k 
         self.beta = beta
 
@@ -56,6 +55,8 @@ class PI_BnB(Actor):
 
         # Update state
         #self.i += (self.k * dt / self.ti) * self.e * (dt / self.tr) * (float(input)-self.v)
+	
+	self.monitor_value = self.v	
 
         return (self.v, )
 
