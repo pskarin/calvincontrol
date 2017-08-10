@@ -22,12 +22,17 @@ DELIMINATOR = ';'
 TIME_SCALE = 1./1000000.
 TIME_UNIT = 's'
 
-def produce(path):
+def produce(paths):
 	global data 
-	data = read_data(path)
+	data = {}
+
+	for path in paths: 
+		print path
+		read_data(path)
+	
 	#data = mock_data()
 
-	fig, axes = plt.subplots(nrows=2, ncols=7)
+	fig, axes = plt.subplots(nrows=1, ncols=1)
 
 	# plt_dist( [ ('ball_n_beam_pid:inner', 'evaluate'), ('ball_n_beam_pid:outer', 'evaluate')], axes[0])
 	# plt_diff_ts( [ ('ball_n_beam_pid:inner', 'evaluate'), ('ball_n_beam_pid:outer', 'evaluate')], axes[1])
@@ -43,71 +48,71 @@ def produce(path):
 	# 	time_scale=TIME_SCALE)
 	plt_ctrl_ts( 
 		[ ( ('act', 'write'), 'DATA', 'Ang. vel.'), ( ('ang', 'trigger'), 'DATA', 'Angle'), ( ('pos', 'trigger'), 'DATA', 'Position')], 
-		[ ( ('outer', 'evaluate'), 'DATA', 'Ang. set point'), ( ('outer', 'set_ref'), 'DATA', 'Pos. set point')], 
-		axes[1,0],
+		[ ( ('dis', 'trigger'), 'DATA', 'Pos. set point')], 
+		axes,
 		title='PID',
 		x_label='Time (%s)' % TIME_UNIT,
 		y_label='Signal (V)',
 		time_scale=TIME_SCALE)
 
+	# # plt_diff_ts( 
+	# # 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# # 	axes[0,1],
+	# # 	title='MPC - Period')
 	# plt_diff_ts( 
-	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
-	# 	axes[0,1],
-	# 	title='MPC - Period')
-	plt_diff_ts( 
-		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
-		axes[1,1],
-		title='PID - Period')
+	# 	[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
+	# 	axes[1,1],
+	# 	title='PID - Period')
 
+	# # plt_dist( 
+	# # 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# # 	axes[0,2],
+	# # 	title='MPC - Period dist.')
 	# plt_dist( 
-	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
-	# 	axes[0,2],
-	# 	title='MPC - Period dist.')
-	plt_dist( 
-		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
-		axes[1,2],
-		title='PID - Period dist.')
+	# 	[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
+	# 	axes[1,2],
+	# 	title='PID - Period dist.')
 	
+	# # plt_rel_phase(
+	# # 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# # 	axes[0,3])
 	# plt_rel_phase(
-	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
-	# 	axes[0,3])
-	plt_rel_phase(
-		[ ( ('ang', 'trigger'), 'EXEC'), (('pos', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
-		axes[1,3])
+	# 	[ ( ('ang', 'trigger'), 'EXEC'), (('pos', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
+	# 	axes[1,3])
 
+	# # plt_cum_drift(
+	# # 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
+	# # 	ref_period_set = [100000 for i in range(3)],
+	# # 	ax = axes[0,4] )
 	# plt_cum_drift(
-	# 	[ ( ('posm', 'trigger'), 'EXEC'), (('angm', 'trigger'), 'EXEC'), (('mpc', 'action'), 'EXEC')], 
-	# 	ref_period_set = [100000 for i in range(3)],
-	# 	ax = axes[0,4] )
-	plt_cum_drift(
-		[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
-		ref_period_set = [10000 for i in range(4)],
-		ax = axes[1,4] )
+	# 	[ ( ('pos', 'trigger'), 'EXEC'), (('ang', 'trigger'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')],
+	# 	ref_period_set = [10000 for i in range(4)],
+	# 	ax = axes[1,4] )
 
-	# plt_rel_phase(
-	# 	[ ( ('mpc', 'action'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
-	# 	axes[0,5])
+	# # plt_rel_phase(
+	# # 	[ ( ('mpc', 'action'), 'EXEC'), (('outer', 'evaluate'), 'EXEC'), (('inner', 'evaluate'), 'EXEC')], 
+	# # 	axes[0,5])
 
-	plt_sys_error_ts(
-		[(('pos', 'trigger'), 'DATA', 'PID')], 
-		ref_target_set = [( ('outer', 'set_ref'), 'DATA')],
-		ax = axes[1,5],
-		title='Error',
-		x_label='Time (%s)' % TIME_UNIT,
-		y_label='Error',
-		time_scale=TIME_SCALE
-		)
+	# plt_sys_error_ts(
+	# 	[(('pos', 'trigger'), 'DATA', 'PID')], 
+	# 	ref_target_set = [( ('outer', 'set_ref'), 'DATA')],
+	# 	ax = axes[1,5],
+	# 	title='Error',
+	# 	x_label='Time (%s)' % TIME_UNIT,
+	# 	y_label='Error',
+	# 	time_scale=TIME_SCALE
+	# 	)
 
+	# # plt_ts( 
+	# # 	[ ( ('mpc', 'action'), 'DUR')], 
+	# # 	axes[0,6],
+	# # 	y_label='Execution time (\mu s)',
+	# # 	title='MPC - Execution time')
 	# plt_ts( 
-	# 	[ ( ('mpc', 'action'), 'DUR')], 
-	# 	axes[0,6],
+	# 	[ (('outer', 'evaluate'), 'DUR'), (('inner', 'evaluate'), 'DUR')],
+	# 	axes[1,6],
 	# 	y_label='Execution time (\mu s)',
-	# 	title='MPC - Execution time')
-	plt_ts( 
-		[ (('outer', 'evaluate'), 'DUR'), (('inner', 'evaluate'), 'DUR')],
-		axes[1,6],
-		y_label='Execution time (\mu s)',
-		title='PID - Execution time')
+	# 	title='PID - Execution time')
 
 
 	#plt.tight_layout()
@@ -230,7 +235,7 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 		if len(mp) >2:
 			label = mp[2]
 
-		ax.plot( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], drawstyle='steps-post', linestyle='dashed', label=label)
+		ax.plot( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], drawstyle='steps', linestyle='dashed', label=label)
 
 	ax.legend()
 
@@ -393,12 +398,12 @@ def mock_data():
 	dt = 0.01
 
 	#timing_struct = { act:{ func: t + np.cumsum( rnd.sample( range(100, 10000), NBR_ENTRIES)) for func in funcs} for act, funcs in actors.iteritems()}
-	big_struct = { act:{ func: t + 0.1*np.sin(4*np.pi*np.arange(0, int(NBR_ENTRIES*dt), dt)) for func in funcs} for act, funcs in actors.iteritems()}
+	data = { act:{ func: t + 0.1*np.sin(4*np.pi*np.arange(0, int(NBR_ENTRIES*dt), dt)) for func in funcs} for act, funcs in actors.iteritems()}
 
-	return big_struct
+	return data
 
 def read_data(path):
-	big_struct = {}
+	global data
 
 	time_keeper = {}
 
@@ -409,14 +414,15 @@ def read_data(path):
 			try:
 				actor = row[ ACTOR_IDX].split(':')[1]
 			except IndexError:
-				print row
-				print row[ ACTOR_IDX]
+				pass
+				#print row
+				#print row[ ACTOR_IDX]
 				
 			func = row[ FUNC_IDX]
 
 			# Make sure the dict is populated+
-			if (actor, func) not in big_struct and func != '':
-				big_struct[ (actor, func)] =  {'EXEC': [], 'DUR': [], 'DATA': {'TIME':[], 'VALUE': []}}
+			if (actor, func) not in data and func != '':
+				data[ (actor, func)] =  {'EXEC': [], 'DUR': [], 'DATA': {'TIME':[], 'VALUE': []}}
 			if actor not in time_keeper:
 				time_keeper[ actor] = {'TRIGGERED': False, 'FUNC_NAME': None, 'T_ENTER': None}
 
@@ -426,21 +432,21 @@ def read_data(path):
 
 			elif row[ ACTION_IDX] == 'trigger':
 				# EXEC
-				big_struct[ (actor, func)]['EXEC'].append( float(row[ TIME_IDX]))
+				data[ (actor, func)]['EXEC'].append( float(row[ TIME_IDX]))
 
 				# VALUE
 				if row[ VALUE_IDX] is not '':
-					big_struct[ (actor, func)][ 'DATA'][ 'TIME'].append( float(row[ TIME_IDX]))
-					big_struct[ (actor, func)][ 'DATA'][ 'VALUE'].append( float(row[ VALUE_IDX]))
+					data[ (actor, func)][ 'DATA'][ 'TIME'].append( float(row[ TIME_IDX]))
+					data[ (actor, func)][ 'DATA'][ 'VALUE'].append( float(row[ VALUE_IDX]))
 
 				time_keeper[ actor][ 'TRIGGERED'] = True
 				time_keeper[ actor][ 'FUNC_NAME'] = func
 
 			elif row[ ACTION_IDX] == 'exit' and time_keeper[ actor][ 'TRIGGERED']:
 				try:
-					big_struct[ (actor, time_keeper[ actor][ 'FUNC_NAME'])][ 'DUR'].append( float(row[ TIME_IDX]) - time_keeper[ actor][ 'T_ENTER'])
+					data[ (actor, time_keeper[ actor][ 'FUNC_NAME'])][ 'DUR'].append( float(row[ TIME_IDX]) - time_keeper[ actor][ 'T_ENTER'])
 				except TypeError:
-					print row[ TIME_IDX]
+					pass
 
 				time_keeper[ actor][ 'TRIGGERED'] = False
 				time_keeper[ actor][ 'FUNC_NAME'] = None
@@ -450,18 +456,17 @@ def read_data(path):
 			# 	print 'Unknown state!? - read_data(...)'
 
 	print ' --- Collected actor function pairs ---'
-	for (actor, func) in big_struct.keys():
-		print '\t%s -> %s (#Exe:%i, #Val:%i)' % (actor, func, len(big_struct[ (actor, func)][ 'EXEC']), len(big_struct[ (actor, func)][ 'DATA'][ 'TIME']))
+	for (actor, func) in data.keys():
+		print '\t%s -> %s (#Exe:%i, #Val:%i)' % (actor, func, len(data[ (actor, func)][ 'EXEC']), len(data[ (actor, func)][ 'DATA'][ 'TIME']))
 
-	return big_struct
 
 if __name__ == '__main__':
 	import sys
 	parser = argparse.ArgumentParser()
 
-	parser.add_argument('-p', action='store', dest='path',
-					type=str, help='Path to CSV file', default='run1.actortrace')
+	parser.add_argument('-p',  nargs='+', action='store', dest='paths',
+					type=str, help='Path to actortrace files', required = True)
 
 	results = parser.parse_args()
 
-	produce(path = results.path)
+	produce(paths = results.paths)
