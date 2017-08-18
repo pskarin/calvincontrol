@@ -210,6 +210,7 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 	ax.grid(True)
 	ax.set_ylim([-10, 10])
 
+	ref_times = []
 
 	for mp in mp_set:
 		target_data = data[ mp[0]][ mp[1]]
@@ -220,6 +221,8 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 
 		x = np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale)
 		y = target_data['VALUE']
+
+		ref_times.append(target_data['TIME'][0])
 
 		ax.plot( x, y, label=label)
 
@@ -235,7 +238,7 @@ def plt_ctrl_ts(mp_set, set_points, ax, title='', x_label='', y_label='', time_s
 		if len(mp) >2:
 			label = mp[2]
 
-		ax.plot( np.multiply( np.subtract(target_data['TIME'], target_data['TIME'][0]), time_scale), target_data['VALUE'], drawstyle='steps', linestyle='dashed', label=label)
+		ax.plot( np.multiply( np.subtract(target_data['TIME'], min(ref_times)), time_scale), target_data['VALUE'], drawstyle='steps-post', linestyle='dashed', label=label)
 
 	ax.legend()
 
