@@ -1,0 +1,22 @@
+/* Actors */
+outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+
+ang : io.SimReader(tick=0.05, device="/bbsim_out1-0", scale=0.785)
+pos : io.SimReader(tick=0.05, device="/bbsim_out2-0", scale=0.55)
+act : io.SimWriter(device="/bbsim_in-0")
+
+dis : misc.PacedValueIterator( tick=10.0, values=[0.0, 5.0, 0.0, -5.0])
+ji1 : misc.GaussDelay( mu=0.035, sigma = 0.001)
+ji2 : misc.GaussDelay( mu=0.035, sigma = 0.001)
+ji3 : misc.GaussDelay( mu=0.035, sigma = 0.001)
+
+/* Connections */
+pos.value > ji1.token 
+ji1.token > outer.y
+ang.value > ji2.token
+ji2.token > inner.y
+outer.v > inner.y_ref
+inner.v > ji3.token
+ji3.token > act.value
+dis.value > outer.y_ref
