@@ -1,0 +1,49 @@
+/* Actors */
+outer0 : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner0 : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+ang0 : io.SimReader(tick=0.05, device="/bbsim_out1-0", scale=0.785)
+pos0 : io.SimReader(tick=0.05, device="/bbsim_out2-0", scale=0.55)
+act0 : io.SimWriter(device="/bbsim_in-0")
+
+outer1 : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner1 : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+ang1 : io.SimReader(tick=0.05, device="/bbsim_out1-1", scale=0.785)
+pos1 : io.SimReader(tick=0.05, device="/bbsim_out2-1", scale=0.55)
+act1 : io.SimWriter(device="/bbsim_in-1")
+
+outer2 : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner2 : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+ang2 : io.SimReader(tick=0.05, device="/bbsim_out1-2", scale=0.785)
+pos2 : io.SimReader(tick=0.05, device="/bbsim_out2-2", scale=0.55)
+act2 : io.SimWriter(device="/bbsim_in-2")
+
+outer3 : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner3 : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+ang3 : io.SimReader(tick=0.05, device="/bbsim_out1-3", scale=0.785)
+pos3 : io.SimReader(tick=0.05, device="/bbsim_out2-3", scale=0.55)
+act3 : io.SimWriter(device="/bbsim_in-3")
+
+dis : misc.PacedValueIterator( tick=10.0, values=[0.0, 5.0, 0.0, -5.0])
+
+/* Connections */
+pos0.value > outer0.y
+ang0.value > inner0.y
+outer0.v > inner0.y_ref
+inner0.v > act0.value
+
+pos1.value > outer1.y
+ang1.value > inner1.y
+outer1.v > inner1.y_ref
+inner1.v > act1.value
+
+pos2.value > outer2.y
+ang2.value > inner2.y
+outer2.v > inner2.y_ref
+inner2.v > act2.value
+
+pos3.value > outer3.y
+ang3.value > inner3.y
+outer3.v > inner3.y_ref
+inner3.v > act3.value
+
+dis.value > outer0.y_ref, outer1.y_ref, outer2.y_ref, outer3.y_ref
