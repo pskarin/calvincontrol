@@ -46,4 +46,4 @@ ang4.value > inner4.y
 outer4.v > inner4.y_ref
 inner4.v > act4.value
 
-dis.value > outer0.y_ref, outer1.y_ref, outer2.y_ref, outer3.y_ref
+dis.value > outer1.y_ref, outer2.y_ref, outer3.y_ref, outer4.y_ref
