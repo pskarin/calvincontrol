@@ -2,13 +2,15 @@ import binascii
 import socket
 import argparse
 import threading
+import atexit
 
 from pytun import TunTapDevice, IFF_TUN, IFF_NO_PI
 
 OFFSET = 0
 
 def main(args):
-	
+	atexit.register(terminate)
+
 	tun = TunTapDevice(flags = (IFF_TUN|IFF_NO_PI))
 	tun.addr 	= '10.0.1.2'
 	#tun.dstaddr = '192.168.1.3'
@@ -23,7 +25,7 @@ def main(args):
 
 	print "\n---- UDP tunneling ----"
 	print " # iface: %s (%s)" % (tun.name, tun.addr)
-	print " ->| %s:%i" % (args.out_ip, args.out_port)
+	print " |-> %s:%i" % (args.out_ip, args.out_port)
 	print " |<- %s:%i" % (args.in_ip, args.in_port)
 	#print " S<- %s:%i" % (tun.addr, 9095)
 	print "-----------------------\n"
@@ -54,17 +56,18 @@ def main(args):
 			# Filter out threads which have been joined or are None
 			threads = [t.join(1000) for t in threads if t is not None and t.isAlive()]
 		except KeyboardInterrupt:
-			print " (!) Ctrl-c received! Killing threads..."
+			terminate()
 
-			active = False
-			for t in threads:
-				t.join()
+def terminate():
+	print " (!) Ctrl-c received! Killing threads..."
+	active = False
+	for t in threads:
+		t.join()
 
-			tun.down()
-			print "\t - %s dismantled." % tun.name
+	tun.down()
+	print "\t - %s dismantled." % tun.name
 
 def server(inet, port):
-
 	soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	soc.bind((inet, port))
 	soc.settimeout(2)
@@ -110,7 +113,7 @@ def outbound(iface, out_ip, out_port, soc):
 		# 	print "->|  Undefined packet: %s" % binascii.hexlify(packet)
 
 	soc.close()
-	print "\t - ->| thread terminated "
+	print "\t - |-> thread terminated "
 
 def inbound(iface, in_ip, in_port, soc):
 	soc.bind((in_ip, in_port))
