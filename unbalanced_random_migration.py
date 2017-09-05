@@ -20,7 +20,6 @@ def main(target_node_uris, unmigratable_names, unmigratable_types, inter_mig_dis
 	print '  Nbr. unmigratable actors: %i' % len(unmig_actors)
 	print ' -------------------\n'
 
-
 	migrator(inter_mig_dist, actor_centric_mig_scheme(nodes=nodes, actors=actors), nodes, actors) # Stick into a thread
 
 def migrator(inter_mig_dist, mig_scheme, nodes, actors):
@@ -29,15 +28,15 @@ def migrator(inter_mig_dist, mig_scheme, nodes, actors):
 		time.sleep( inter_mig_dist())
 
 		# 2) Select target
-		source_node_id, dest_node_id, actor_id = mig_scheme()
+		src_node_id, dest_node_id, actor_id = mig_scheme()
 
 		print 'Migrating actor:%s from node:%s to node:%s ... ' % (
 		actors[actor_id]['NAME'],
-		nodes[source_node_id]['NAME'],
+		nodes[src_node_id]['NAME'],
 		nodes[dest_node_id]['NAME']),
 
 		# 3) Migrate
-		success = migrate_actor(nodes[source_node_id]['CTRL_URIS'], dest_node_id, actor_id)
+		success = migrate_actor(nodes[src_node_id]['CTRL_URIS'], dest_node_id, actor_id)
 
 		# 4) Update state
 		if success:
@@ -45,6 +44,14 @@ def migrator(inter_mig_dist, mig_scheme, nodes, actors):
 			print 'SUCCEEDED'
 		else:
 			print 'FAILED'
+
+		# Debug
+		time.sleep(1.)
+		print_state(nodes=nodes, actors=actors)
+		# src_node_uris = nodes[src_node_id]['CTRL_URIS']
+		# dest_node_uris = nodes[src_node_id]['CTRL_URIS']
+		# print "\t Present in (src:%s, dest:%s), is shadow: %s" % (
+		# actor_present(src_node_uris, actor_id), actor_present(dest_node_uris, actor_id), is_actor_shadow(dest_node_uris, actor_id))
 
 def on_exit():
 	RUNNING = False
@@ -156,14 +163,27 @@ def get_actor_info(target_node_uris, actor_id):
 def migrate_actor(source_node_uris, dest_node_id, actor_id):
 	return sp.check_output(['cscontrol', source_node_uris, 'actor', 'migrate', actor_id, dest_node_id]) != 'Error HTTP'
 
-def verify_actor_location(actor_id):
-	pass
+def actor_present(target_node_uris, actor_id):
+	actor_ids = get_node_actors(target_node_uris)
+	return actor_id in actor_ids
+
+def is_actor_shadow(target_node_uris, actor_id):
+	actor_attr = get_actor_info(target_node_uris, actor_id)['is_shadow']
+	return actor_attr == True
 
 '''
 Diagnostic functions
 '''
 def node_responsive(target_node_uris):
 	return sp.check_output(['cscontrol', target_node_uris, 'nodes', 'list'])[:10] != 'Error HTTP'
+
+def print_state(nodes, actors):
+	for node_id, parameters in nodes.iteritems():
+		node_uris = parameters['CTRL_URIS']
+		node_name = parameters['NAME']
+		print "Actors in node:%s" % node_name
+		for actor_id in get_node_actors(node_uris):
+			print " - %s" % actors[actor_id]['NAME']
 
 '''
 Formatting functions
