@@ -183,7 +183,8 @@ def print_state(nodes, actors):
 		node_name = parameters['NAME']
 		print "Actors in node:%s" % node_name
 		for actor_id in get_node_actors(node_uris):
-			print " - %s" % actors[actor_id]['NAME']
+			if actor_id in actors:
+				print " - %s" % actors[actor_id]['NAME']
 
 '''
 Formatting functions
