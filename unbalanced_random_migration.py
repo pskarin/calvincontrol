@@ -8,8 +8,8 @@ import atexit
 
 RUNNING = True
 
-def main(node_uris, no_go_node_uris, unmigratable_names, unmigratable_types, inter_mig_dist, mig_scheme):
-	nodes = map_nodes(node_uris, no_go_node_uris)
+def main(node_uris, no_go_node_names, unmigratable_names, unmigratable_types, inter_mig_dist, mig_scheme):
+	nodes = map_nodes(node_uris, no_go_node_names)
 	actors, unmig_actors = map_actors(nodes, unmigratable_names, unmigratable_types)
 
 	assert len(actors) > 0, 'None of the resident actors are migratable'
@@ -77,7 +77,7 @@ def actor_centric_mig_scheme(nodes, actors):
 '''
 Explore functions
 '''
-def map_nodes(node_uris): # [TO-DO] Make recurive to ensure that we get all nodes when using local storage
+def map_nodes(node_uris, no_go_node_names): # [TO-DO] Make recurive to ensure that we get all nodes when using local storage
 	print 'Mapping nodes ... ',
 
 	target_node_uris = node_uris[0]
@@ -92,15 +92,17 @@ def map_nodes(node_uris): # [TO-DO] Make recurive to ensure that we get all node
 		node_ids.add( get_node_id( target)) # Target node ID
 		node_ids.add( set(get_peer_node_ids( target)))# Target node's peers IDs
 
-	node_ids.remove( set(no_go_node_uris))
-
 	for node_id in node_ids:
 		parameters = get_peer_node_info(target_node_uris, node_id)
-		result.update({ node_id: {
-			'NAME':parameters['attributes']['indexed_public'][0].split('/')[-1],
-			'URIS':parameters['uris'][0],
-			'CTRL_URIS':parameters['control_uris'][0]}
-		})
+
+		name = 'NAME':parameters['attributes']['indexed_public'][0].split('/')[-1]
+
+		if name not in no_go_node_names:
+			result.update({ node_id: {
+				name,
+				'URIS':parameters['uris'][0],
+				'CTRL_URIS':parameters['control_uris'][0]}
+			})
 
 	end = time.time()
 	print 'DONE:%.2f s' % (end-start)
@@ -227,7 +229,7 @@ if __name__ == '__main__':
 		nargs='+',
 		type=str,
 		help='URIS of target nodes',
-		default=[http://localhost:5001])
+		default=['http://localhost:5001'])
 	parser.add_argument(
 		'-x',
 		dest='nogo',
@@ -280,7 +282,7 @@ if __name__ == '__main__':
 
 	main(
 		node_uris=args.uris,
-		no_go_node_uris=args.nogo,
+		no_go_node_names=args.nogo,
 		unmigratable_names=regex_compile_list(expr_list=args.mig_name),
 		unmigratable_types=regex_compile_list(expr_list=args.mig_type),
 		inter_mig_dist=dist_factory(dist_name=args.dist, kwargs=args.kwargs, min_mig_time=args.min_mig_time),
