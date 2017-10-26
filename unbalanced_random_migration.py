@@ -24,10 +24,7 @@ def main(node_uris, no_go_node_names, unmigratable_names, unmigratable_types, in
 
 def migrator(inter_mig_dist, mig_scheme, nodes, actors):
 	while RUNNING:
-		# 1) Wait
-		time.sleep( inter_mig_dist())
-
-		# 2) Select target
+		# 1) Select target
 		src_node_id, dest_node_id, actor_id = mig_scheme()
 
 		print 'Migrating actor:%s from node:%s to node:%s ... ' % (
@@ -35,10 +32,10 @@ def migrator(inter_mig_dist, mig_scheme, nodes, actors):
 		nodes[src_node_id]['NAME'],
 		nodes[dest_node_id]['NAME']),
 
-		# 3) Migrate
+		# 2) Migrate
 		success = migrate_actor(nodes[src_node_id]['CTRL_URIS'], dest_node_id, actor_id)
 
-		# 4) Update state
+		# 3) Update state
 		if success:
 			actors[actor_id]['CURRENT_NODE'] = dest_node_id
 			print 'SUCCEEDED'
@@ -52,6 +49,9 @@ def migrator(inter_mig_dist, mig_scheme, nodes, actors):
 		# dest_node_uris = nodes[src_node_id]['CTRL_URIS']
 		# print "\t Present in (src:%s, dest:%s), is shadow: %s" % (
 		# actor_present(src_node_uris, actor_id), actor_present(dest_node_uris, actor_id), is_actor_shadow(dest_node_uris, actor_id))
+
+		# 4) Wait
+		time.sleep( inter_mig_dist())
 
 def on_exit():
 	RUNNING = False
@@ -89,17 +89,17 @@ def map_nodes(node_uris, no_go_node_names): # [TO-DO] Make recurive to ensure th
 	node_ids = set()
 
 	for target in node_uris:
-		node_ids.add( get_node_id( target)) # Target node ID
-		node_ids.add( set(get_peer_node_ids( target)))# Target node's peers IDs
+		node_ids.add( get_node_id(target)) # Target node ID
+		node_ids.update( set(get_peer_node_ids( target)))# Target node's peers IDs
 
 	for node_id in node_ids:
 		parameters = get_peer_node_info(target_node_uris, node_id)
 
-		name = 'NAME':parameters['attributes']['indexed_public'][0].split('/')[-1]
+		name = parameters['attributes']['indexed_public'][0].split('/')[-1]
 
 		if name not in no_go_node_names:
 			result.update({ node_id: {
-				name,
+				'NAME':name,
 				'URIS':parameters['uris'][0],
 				'CTRL_URIS':parameters['control_uris'][0]}
 			})
@@ -191,7 +191,7 @@ def print_state(nodes, actors):
 	for node_id, parameters in nodes.iteritems():
 		node_uris = parameters['CTRL_URIS']
 		node_name = parameters['NAME']
-		print "Actors in node:%s - %s" % (node_name, [actors[actor_id]['NAME'] for actor_id in get_node_actors(node_uris) if actor_id in actors] )
+		print "\tActors in node:%s - %s" % (node_name, [actors[actor_id]['NAME'] for actor_id in get_node_actors(node_uris) if actor_id in actors] )
 
 '''
 Formatting functions
@@ -235,7 +235,7 @@ if __name__ == '__main__':
 		dest='nogo',
 		nargs='+',
 		type=str,
-		help='URIS of no-go nodes',
+		help='Name of no-go nodes',
 		default=[])
 	parser.add_argument(
 		'-n',
