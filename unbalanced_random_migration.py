@@ -8,8 +8,8 @@ import atexit
 
 RUNNING = True
 
-def main(target_node_uris, unmigratable_names, unmigratable_types, inter_mig_dist, mig_scheme):
-	nodes = map_nodes(target_node_uris)
+def main(node_uris, no_go_node_uris, unmigratable_names, unmigratable_types, inter_mig_dist, mig_scheme):
+	nodes = map_nodes(node_uris, no_go_node_uris)
 	actors, unmig_actors = map_actors(nodes, unmigratable_names, unmigratable_types)
 
 	assert len(actors) > 0, 'None of the resident actors are migratable'
@@ -77,14 +77,22 @@ def actor_centric_mig_scheme(nodes, actors):
 '''
 Explore functions
 '''
-def map_nodes(target_node_uris): # [TO-DO] Make recurive to ensure that we get all nodes when using local storage
+def map_nodes(node_uris): # [TO-DO] Make recurive to ensure that we get all nodes when using local storage
 	print 'Mapping nodes ... ',
+
+	target_node_uris = node_uris[0]
+
 	start = time.time()
 
 	result = {}
 
-	node_ids = [get_node_id(target_node_uris)] # Target node ID
-	node_ids += get_peer_node_ids(target_node_uris) # Target node's peers IDs
+	node_ids = set()
+
+	for target in node_uris:
+		node_ids.add( get_node_id( target)) # Target node ID
+		node_ids.add( set(get_peer_node_ids( target)))# Target node's peers IDs
+
+	node_ids.remove( set(no_go_node_uris))
 
 	for node_id in node_ids:
 		parameters = get_peer_node_info(target_node_uris, node_id)
@@ -145,46 +153,43 @@ def map_actors(nodes, unmigratable_names=[], unmigratable_types=[]):
 '''
 Read functions - [TO-DO] Throw 'node not reachable' exception when eval or json.loads fails
 '''
-def get_node_id(target_node_uris):
-	return eval( sp.check_output(['cscontrol', target_node_uris, 'id']))
+def get_node_id(node_uris):
+	return eval( sp.check_output(['cscontrol', node_uris, 'id']))
 
-def get_peer_node_ids(target_node_uris):
-	return eval( sp.check_output(['cscontrol', target_node_uris, 'nodes', 'list']))
+def get_peer_node_ids(node_uris):
+	return eval( sp.check_output(['cscontrol', node_uris, 'nodes', 'list']))
 
-def get_peer_node_info(target_node_uris, node_id):
-	return json.loads( sp.check_output(['cscontrol', target_node_uris, 'nodes', 'info', node_id]))
+def get_peer_node_info(node_uris, node_id):
+	return json.loads( sp.check_output(['cscontrol', node_uris, 'nodes', 'info', node_id]))
 
-def get_node_actors(target_node_uris):
-	return eval( sp.check_output(['cscontrol', target_node_uris, 'actor', 'list']))
+def get_node_actors(node_uris):
+	return eval( sp.check_output(['cscontrol', node_uris, 'actor', 'list']))
 
-def get_actor_info(target_node_uris, actor_id):
-	return json.loads(sp.check_output(['cscontrol', target_node_uris, 'actor', 'info', actor_id]))
+def get_actor_info(node_uris, actor_id):
+	return json.loads(sp.check_output(['cscontrol', node_uris, 'actor', 'info', actor_id]))
 
 def migrate_actor(source_node_uris, dest_node_id, actor_id):
 	return sp.check_output(['cscontrol', source_node_uris, 'actor', 'migrate', actor_id, dest_node_id]) != 'Error HTTP'
 
-def actor_present(target_node_uris, actor_id):
-	actor_ids = get_node_actors(target_node_uris)
+def actor_present(node_uris, actor_id):
+	actor_ids = get_node_actors(node_uris)
 	return actor_id in actor_ids
 
-def is_actor_shadow(target_node_uris, actor_id):
-	actor_attr = get_actor_info(target_node_uris, actor_id)['is_shadow']
+def is_actor_shadow(node_uris, actor_id):
+	actor_attr = get_actor_info(node_uris, actor_id)['is_shadow']
 	return actor_attr == True
 
 '''
 Diagnostic functions
 '''
-def node_responsive(target_node_uris):
-	return sp.check_output(['cscontrol', target_node_uris, 'nodes', 'list'])[:10] != 'Error HTTP'
+def node_responsive(node_uris):
+	return sp.check_output(['cscontrol', node_uris, 'nodes', 'list'])[:10] != 'Error HTTP'
 
 def print_state(nodes, actors):
 	for node_id, parameters in nodes.iteritems():
 		node_uris = parameters['CTRL_URIS']
 		node_name = parameters['NAME']
-		print "Actors in node:%s" % node_name
-		for actor_id in get_node_actors(node_uris):
-			if actor_id in actors:
-				print " - %s" % actors[actor_id]['NAME']
+		print "Actors in node:%s - %s" % (node_name, [actors[actor_id]['NAME'] for actor_id in get_node_actors(node_uris) if actor_id in actors] )
 
 '''
 Formatting functions
@@ -219,9 +224,17 @@ if __name__ == '__main__':
 	parser.add_argument(
 		'-c',
 		dest='uris',
+		nargs='+',
 		type=str,
-		help='Control uris of initial target node',
-		default='http://localhost:5001')
+		help='URIS of target nodes',
+		default=[http://localhost:5001])
+	parser.add_argument(
+		'-x',
+		dest='nogo',
+		nargs='+',
+		type=str,
+		help='URIS of no-go nodes',
+		default=[])
 	parser.add_argument(
 		'-n',
 		dest='mig_name',
@@ -266,7 +279,8 @@ if __name__ == '__main__':
 	atexit.register( on_exit)
 
 	main(
-		target_node_uris=args.uris,
+		node_uris=args.uris,
+		no_go_node_uris=args.nogo,
 		unmigratable_names=regex_compile_list(expr_list=args.mig_name),
 		unmigratable_types=regex_compile_list(expr_list=args.mig_type),
 		inter_mig_dist=dist_factory(dist_name=args.dist, kwargs=args.kwargs, min_mig_time=args.min_mig_time),
