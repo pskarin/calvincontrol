@@ -16,17 +16,20 @@ except ImportError:
 	except ImportError:
 		raise ImportError("Failed to import library from parent folder")
 
+P1 = 6.034
+P2 = -9.941
+
 AVAIL_CHA = [1,2]
-MAX_OUT = 3.3
+MAX_OUT = 3.299
 REFLECTION_FACTOR = MAX_OUT/2.
 SCALE_FACTOR = 10.
 
-class SimReader(Actor):
+class AbeReader(Actor):
 
 	"""
 	Reads every [tick] seconds from AB Electronics ADC-DAC Pi Zero
 
-	Requires: 
+	Requires 
 		- Raspberry Pi > model B
 		- AB Electronics ADC-DAC Pi Zero
 		- Up/Down scale (+-10V) circuit available at ...
@@ -34,12 +37,14 @@ class SimReader(Actor):
 		- PySPI Dev
 		- AB Electronics python libraries https://github.com/abelectronicsuk/ABElectronics_Python_Libraries.git
 
-	Output:
-	  value : Input value
+	Outputs:
+	  value : ADC value in volts
 	"""
 
-	@manage(['tick', 'channel', 'gain_factor', 'mode', 'timer', 'started'])
+	@manage(['tick', 'channel', 'timer', 'started', 'adcdac'])
 	def init(self, tick, channel, gain_factor=2, mode=0):
+		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
+
 		self.tick = tick
 
 		self.channel = channel
@@ -49,25 +54,30 @@ class SimReader(Actor):
 		self.timer = None 
 		self.started = False 
 
+		self.adcdac = None
+
 		self.setup()
 
 	def setup(self):
 		self.use('calvinsys.events.timer', shorthand='timer')
 
-		self.adcdac = ADCDACPi(self.gain_factor)
+		self.adcdac = ADCDACPi( self.gain_factor)
 		self.adcdac.set_adc_refvoltage(MAX_OUT)
 
 	def start(self):
 		self.timer = self['timer'].repeat(self.tick)
 		self.started = True
 
-	def down_up(value):
-		result = SCALE_FACTOR*(value - 1.)/REFLECTION_FACTOR
+	def up_scale(self, value):
+		#result = SCALE_FACTOR*(value - 1.)/REFLECTION_FACTOR
+		 
+		# Calibrated output y = P1 * value + P2
+		result = P1*value + P2  	
 
 		return result 
 
 	@stateguard(lambda self: not self.started)
-	@condition([], ['value'])
+	@condition([], [])
 	def start_timer(self):
 		self.start()
 
@@ -75,8 +85,8 @@ class SimReader(Actor):
 	@condition([], ['value'])
 	def trigger(self):
 		self.timer.ack()
-
-		value = self.down_up( self.adcdac.read_adc_voltage(self.channel, self.mode))
+		value = 0.
+		value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode))
 
 		self.monitor_value = value 
 

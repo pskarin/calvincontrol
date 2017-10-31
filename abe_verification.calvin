@@ -1,0 +1,31 @@
+/* Actors */
+out1 : io.AbeWriter(channel=1)
+out2 : io.AbeWriter(channel=2)
+in1 : io.AbeReader(tick=5.0, channel=1)
+in2 : io.AbeReader(tick=5.0, channel=2)
+
+dis1 : misc.PacedValueIterator( tick=5.0, values=[-10.0, 5.0, 0.0, -5.0])
+dis2 : misc.PacedValueIterator( tick=5.0, values=[10.0, 5.0, 0.0, 5.0])
+
+logout1 : io.Print()
+logout2 : io.Print()
+login1 : io.Print()
+login2 : io.Print()
+
+preout1 : text.PrefixString(prefix="Out 1: ")
+preout2 : text.PrefixString(prefix="Out 2: ")
+prein1 : text.PrefixString(prefix="In 1: ")
+prein2 : text.PrefixString(prefix="In 2: ")
+
+/* Connections */
+dis1.value > out1.value, preout1.in
+preout1.out > logout1.token
+
+dis2.value > out2.value, preout2.in
+preout2.out > logout2.token
+
+in1.value > prein1.in
+prein1.out > login1.token
+
+in2.value > prein2.in
+prein2.out > login2.token
