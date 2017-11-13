@@ -4,64 +4,66 @@
 from calvin.actor.actor import Actor, manage, condition
 
 class PI_BnB(Actor):
-    '''
-    Super simple PI implementation for the Ball'n'Beam setup.
-    
-    Inputs:
-        y: Measured value
-        y_ref: Reference point
-    Outputs:
-        v: Control value
-    '''
-
-    @manage(['ti', 'tr', 'k', 'beta', 'i', 'v', 'e', 'time_prev_sample']) # 
-    def init(self, ti=0., tr=1., k=1., beta=1.): # Default parameter values from lab java code
-        self.ti = ti
-        self.tr = tr
-        self.k = k 
-        self.beta = beta
-
-        self.i = 0.
-        self.v = 0.
-        self.e = 0.
-
-        self.time_prev_sample = 0.
-
-        self.setup()
-
-    def setup(self):
-        self.use('calvinsys.native.python-time', shorthand='time')
-        self.time = self['time']
-        #self.time_prev_sample = self.time.timestamp()# Not a very appropriate value
-
-    def will_migrate(self):
-
-    def did_migrate(self):
-        self.setup()
-
-    @condition(['y','y_ref'],['v'])
-    def evaluate(self, y, y_ref):
-        # Time management - for event based controll 
-        # t = float(self.time.timestamp()) # ms?
-        # dt = t-self.time_prev_sample/1000 
-        # self.time_prev_sample = t
-
-        # e
-        self.e = y_ref - y
-
-        # Control signal
-        self.v = self.k * (self.beta * y_ref - y) + self.i
-
-        # Update state
-        #self.i += (self.k * dt / self.ti) * self.e * (dt / self.tr) * (float(input)-self.v)
+	'''
+	Super simple PI implementation for the Ball'n'Beam setup.
 	
-	self.monitor_value = self.v	
+	Inputs:
+		y: Measured value
+		y_ref: Reference point
+	Outputs:
+		v: Control value
+	'''
 
-        return (self.v, )
+	@manage(['ti', 'tr', 'k', 'beta', 'i', 'v', 'e', 'time_prev_sample','y_ref']) # 
+	def init(self, ti=0., tr=1., k=1., beta=1.): # Default parameter values from lab java code
+		self.ti = ti
+		self.tr = tr
+		self.k = k 
+		self.beta = beta
 
-    @condition(['y_ref'],[])
-    def set_ref(self, input):
-        self.y_ref = input
+		self.i = 0.
+		self.v = 0.
+		self.e = 0.
 
-    action_priority = (evaluate, set_ref)
-    requires = ['calvinsys.native.python-time']#, 'calvinsys.io.stdout']
+		self.y_ref = 0.
+
+		self.time_prev_sample = 0.
+
+		self.setup()
+
+	def setup(self):
+		self.use('calvinsys.native.python-time', shorthand='time')
+		self.time = self['time']
+		#self.time_prev_sample = self.time.timestamp()# Not a very appropriate value
+
+	def will_migrate(self):
+
+	def did_migrate(self):
+		self.setup()
+
+	@condition(['y'],['v'])
+	def evaluate(self, y):
+		# Time management - for event based controll 
+		# t = float(self.time.timestamp()) # ms?
+		# dt = t-self.time_prev_sample/1000 
+		# self.time_prev_sample = t
+
+		# e
+		self.e = self.y_ref - y
+
+		# Control signal
+		self.v = self.k * (self.beta * y_ref - y) + self.i
+
+		# Update state
+		#self.i += (self.k * dt / self.ti) * self.e * (dt / self.tr) * (float(input)-self.v)
+	
+		self.monitor_value = self.v	
+
+		return (self.v, )
+
+	@condition(['y_ref'],[])
+	def set_ref(self, input):
+		self.y_ref = input
+
+	action_priority = (evaluate, set_ref)
+	requires = ['calvinsys.native.python-time']#, 'calvinsys.io.stdout']
