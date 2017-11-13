@@ -32,7 +32,9 @@ class PI_BnB(Actor):
     def setup(self):
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
-        self.time_prev_sample = float(self.time.timestamp()) # Not a very appropriate value
+        #self.time_prev_sample = self.time.timestamp()# Not a very appropriate value
+
+    def will_migrate(self):
 
     def did_migrate(self):
         self.setup()
@@ -43,9 +45,6 @@ class PI_BnB(Actor):
         # t = float(self.time.timestamp()) # ms?
         # dt = t-self.time_prev_sample/1000 
         # self.time_prev_sample = t
-
-        y_ref = float(y_ref)
-        y = float(y)
 
         # e
         self.e = y_ref - y
@@ -62,7 +61,7 @@ class PI_BnB(Actor):
 
     @condition(['y_ref'],[])
     def set_ref(self, input):
-        self.y_ref = float(input)
+        self.y_ref = input
 
     action_priority = (evaluate, set_ref)
     requires = ['calvinsys.native.python-time']#, 'calvinsys.io.stdout']

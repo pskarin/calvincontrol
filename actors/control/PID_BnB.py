@@ -31,29 +31,31 @@ class PID_BnB(Actor):
         self.y_old = 0.
         self.y_ref = 0.
 
-        self.time_prev_sample = 0.
         self.bd = 0.
         self.ad = 0.
 
+        self.time = None
+
         self.setup()
+
+        self.time_prev_sample = self.time.timestamp()
 
     def setup(self):
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
-        self.time_prev_sample = float(self.time.timestamp()) # Not a very appropriate value
 
     def did_migrate(self):
         self.setup()
 
     @condition(['y'],['v'])
-    def evaluate(self, input):
+    def evaluate(self, y):
         # Time management - for event based controll 
-        t = float(self.time.timestamp()) # ms?
+        t = self.time.timestamp()# ms?
         dt = t-self.time_prev_sample
         self.time_prev_sample = t
 
         # Input 
-        self.y = float(input)
+        self.y = y
 
         # 
         self.ad = self.td / (self.td + self.n*dt)
@@ -78,8 +80,8 @@ class PID_BnB(Actor):
 
     @condition(['y_ref'],[])
     def set_ref(self, input):
-        self.y_ref = float(input)
-	self.monitor_value = float(input)
+        self.y_ref = input
+	self.monitor_value = input
 
     action_priority = (evaluate, set_ref)
     requires = ['calvinsys.native.python-time']#, 'calvinsys.io.stdout']
