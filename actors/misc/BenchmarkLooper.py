@@ -7,9 +7,10 @@ class BenchmarkLooper(Actor):
 	"""
 	Sequentially pass a value from __values__ at __tick__
 	Inputs: 
-		token: 
+		token: A trigger. 
 	Outputs:
-		token: a value from __values__
+		out: default value
+		dt: delta t  
 	"""
 
 	@manage(['delay', 'default', 'started'])
@@ -19,6 +20,7 @@ class BenchmarkLooper(Actor):
 
 		self.timer = None
 		self.started = False
+		self.prev_time = None
 		self.setup()
 
 	def setup(self):
@@ -44,15 +46,18 @@ class BenchmarkLooper(Actor):
 		self.start()
 
 	@stateguard(lambda self: self.timer and self.timer.triggered)
-	@condition([], ['token'])
+	@condition([], ['out'])
 	def trigger(self):
 		self.timer.ack()
+		self.prev_time = self['time'].timestamp()
 		return (self.default, )
 
-	@condition(['token'], ['token'])
-	def passthrough(self, token):
-		print self['time'].timestamp()
-		return (token, )
+	@condition(['token'], ['out', 'dt'])
+	def through(self, token):
+		t_now = self['time'].timestamp()
+		dt = t_now - self.prev_time
+		self.prev_time = t_now
+		return (self.default, dt )
 
-	action_priority = (start_timer, trigger, passthrough)
+	action_priority = (start_timer, trigger, through)
 	requires = ['calvinsys.events.timer', 'calvinsys.native.python-time']
