@@ -1,0 +1,57 @@
+/* Actors */
+src0 : misc.BenchmarkLooper(delay=1.0, default="m0.json")
+src1 : misc.BenchmarkLooper(delay=1.0, default="m1.json")
+src2 : misc.BenchmarkLooper(delay=1.0, default="m2.json")
+
+rdr0 : io.WholeFileReader()
+rdr1 : io.WholeFileReader()
+rdr2 : io.WholeFileReader()
+
+wrt_mtrx : io.FileWriter(basename="matrix", suffix="txt")
+wrt_rst0 : io.FileWriter(basename="result_0_", suffix="txt")
+wrt_rst1 : io.FileWriter(basename="result_1_", suffix="txt")
+wrt_rst2 : io.FileWriter(basename="result_2_", suffix="txt")
+
+j2m0 : json.FromString()
+j2m1 : json.FromString()
+j2m2 : json.FromString()
+
+m2j : json.ToString()
+
+mdm0 : math.MatrixDotMultiplier()
+mdm1 : math.MatrixMultiplier()
+
+str0: std.Stringify()
+str1: std.Stringify()
+str2: std.Stringify()
+
+out0: io.Print()
+out1: io.Print()
+out2: io.Print()
+
+/* Connections */
+src0.out > rdr0.filename
+rdr0.out > j2m0.string
+j2m0.data > mdm0.m1
+
+src1.out > rdr1.filename
+rdr1.out > j2m1.string
+j2m1.data > mdm0.m2
+
+src2.out > rdr2.filename
+rdr2.out > j2m2.string
+j2m2.data > mdm1.m2
+
+mdm0.result > mdm1.m1
+
+mdm1.result > m2j.data
+m2j.string > wrt_mtrx.data, src0.token, src1.token, src2.token
+
+src0.dt > str0.in
+str0.out > wrt_rst0.data, out0.token
+
+src1.dt > str1.in
+str1.out > wrt_rst1.data, out1.token
+
+src2.dt > str2.in
+str2.out > wrt_rst2.data, out2.token

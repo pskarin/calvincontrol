@@ -3,9 +3,9 @@
 # William Tärneberg 2017
 from calvin.actor.actor import Actor, manage, condition
 
-class PID_BnB(Actor):
+class PID(Actor):
 	'''
-	Super simple PID implementation for the Ball'n'Beam setup.
+	Generic PID
 	
 	Inputs:
 		y: Measured value
@@ -33,7 +33,7 @@ class PID_BnB(Actor):
 
 		self.setup()
 
-		self.t_prev = self.time.timestamp() # Not the best
+		self.t_prev = self.time.timestamp()
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
@@ -54,7 +54,7 @@ class PID_BnB(Actor):
 		bd = self.k * ad * self.n
 
 		# e
-		#e = self.y_ref - y
+		e = self.y_ref - y
 
 		# D
 		self.d = ad*self.d - bd*(y - self.y_old)
@@ -62,9 +62,11 @@ class PID_BnB(Actor):
 		# Control signal
 		v = self.k * (self.beta * self.y_ref - y) + self.i + self.d
 
+		# I
+		self.i += (self.k * dt/ self.ti) * e * (dt / self.tr) * (y-self.v)
+
 		# Update state
 		self.y_old = y
-		#self.i += (self.k * self.h / self.ti) * self.e * (self.h / self.tr) * (float(input)-self.v)
 
 		self.monitor_value = v
 

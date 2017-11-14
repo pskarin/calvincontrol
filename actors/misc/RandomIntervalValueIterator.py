@@ -61,4 +61,4 @@ class RandomIntervalValueIterator(Actor):
         return (value, )
 
     action_priority = (start_timer, trigger)
-    requires = ['calvinsys.events.timer']
+    requires = ['calvinsys.events.timer','calvinsys.native.python-time']

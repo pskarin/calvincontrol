@@ -4,60 +4,66 @@
 from calvin.actor.actor import Actor, manage, condition, stateguard
 
 class PacedValueIterator(Actor):
-    """
-    Sequentially pass a value from __values__ at __tick__
-    Outputs:
-        value: a value from __values__
-    """
+	"""
+	Sequentially pass a value from __values__ at __tick__
+	Outputs:
+		value: a value from __values__
+	"""
 
-    @manage(['tick', 'values', 'index', 'started'])
-    def init(self, tick, values):
-        self.tick = tick
-        self.values = values
-        # Add exception for len(values) <= 2
-        self.index = 0 
-        self.timer = None
-        self.started = False
-        self.setup()
+	@manage(['tick', 'values', 'index', 'started', 'delta'])
+	def init(self, tick, values):
+		self.tick = tick
+		self.values = values
+		# Add exception for len(values) <= 2
+		self.index = 0 
+		self.timer = None
+		self.started = False
+		self.delta = 0.
+		self.next_trig = None 
+		self.setup()
 
-    def setup(self):
-        self.use('calvinsys.events.timer', shorthand='timer')
+	def setup(self):
+		self.use('calvinsys.events.timer', shorthand='timer')
+		self.use('calvinsys.native.python-time', shorthand='time')
 
-    def start(self):
-        self.timer = self['timer'].repeat(self.tick)
-        self.started = True
+	def start(self):
+		self.timer = self['timer'].repeat(self.tick-self.delta)
+		self.next_trig = self['time'].timestamp()+self.tick
+		self.delta = 0.
+		self.started = True
 
-    def will_migrate(self):
-        if self.timer:
-            self.timer.cancel()
+	def will_migrate(self):
+		if self.timer:
+			self.timer.cancel()
+			self.delta = self.next_trig - self['time'].timestamp()
 
-    def did_migrate(self):
-        self.setup()
-        if self.started:
-            self.start()
+	def did_migrate(self):
+		self.setup()
+		if self.started:
+			self.start()
 
-    @stateguard(lambda self: not self.started)
-    @condition([], ['value'])
-    def start_timer(self):
-        self.start()
+	@stateguard(lambda self: not self.started)
+	@condition([], ['value'])
+	def start_timer(self):
+		self.start()
 
-        value = self.values[self.index]
-        self.index =  (self.index + 1)%len(self.values)
+		value = self.values[self.index]
+		self.index =  (self.index + 1)%len(self.values)
 
-	self.monitor_value = value
+		self.monitor_value = value
 
-        return (value, )
+		return (value, )
 
-    @stateguard(lambda self: self.timer and self.timer.triggered)
-    @condition([], ['value'])
-    def trigger(self):
-        self.timer.ack()
-        value = self.values[self.index]
-        self.index =  (self.index + 1)%len(self.values)
+	@stateguard(lambda self: self.timer and self.timer.triggered)
+	@condition([], ['value'])
+	def trigger(self):
+		self.timer.ack()
+		value = self.values[self.index]
+		self.index =  (self.index + 1)%len(self.values)
 
-	self.monitor_value = value
+		self.monitor_value = value
 
-        return (value, )
+		return (value, )
 
-    action_priority = (start_timer, trigger)
-    requires = ['calvinsys.events.timer']
+	action_priority = (start_timer, trigger)
+	requires = ['calvinsys.events.timer','calvinsys.native.python-time']
