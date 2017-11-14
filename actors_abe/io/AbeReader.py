@@ -6,15 +6,10 @@ import os
 
 try:
 	from ADCDACPi import ADCDACPi
+	fake = False
 except ImportError:
 	print("Failed to import ADCDACPi from python system path")
-	print("Importing from parent folder instead")
-	try:
-		import sys
-		sys.path.append('..')
-		from ADCDACPi import ADCDACPi
-	except ImportError:
-		raise ImportError("Failed to import library from parent folder")
+	fake = True
 
 P1 = 6.034
 P2 = -9.941
@@ -60,9 +55,9 @@ class AbeReader(Actor):
 
 	def setup(self):
 		self.use('calvinsys.events.timer', shorthand='timer')
-
-		self.adcdac = ADCDACPi( self.gain_factor)
-		self.adcdac.set_adc_refvoltage(MAX_OUT)
+		if not fake:
+			self.adcdac = ADCDACPi( self.gain_factor)
+			self.adcdac.set_adc_refvoltage(MAX_OUT)
 
 	def start(self):
 		self.timer = self['timer'].repeat(self.tick)
@@ -84,11 +79,12 @@ class AbeReader(Actor):
 	@stateguard(lambda self: self.timer and self.timer.triggered)
 	@condition([], ['value'])
 	def trigger(self):
-		self.timer.ack()
 		value = 0.
-		value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode))
+		if not fake:
+			self.timer.ack()
+			value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode))
 
-		self.monitor_value = value 
+			self.monitor_value = value 
 
 		return (value, )
 
