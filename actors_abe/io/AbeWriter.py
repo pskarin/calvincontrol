@@ -6,15 +6,10 @@ import os
 
 try:
 	from ADCDACPi import ADCDACPi
+	fake = False
 except ImportError:
 	print("Failed to import ADCDACPi from python system path")
-	print("Importing from parent folder instead")
-	try:
-		import sys
-		sys.path.append('..')
-		from ADCDACPi import ADCDACPi
-	except ImportError:
-		raise ImportError("Failed to import library from parent folder")
+	fake = True
 
 P1 = 0.1675
 P2 = 1.656
@@ -53,8 +48,9 @@ class AbeWriter(Actor):
 		self.setup()
 
 	def setup(self):
-		self.adcdac = ADCDACPi( self.gain_factor)
-		self.adcdac.set_dac_voltage(self.channel, 0.0)
+		if not fake:
+			self.adcdac = ADCDACPi( self.gain_factor)
+			self.adcdac.set_dac_voltage(self.channel, self.down_scale(0.0))
 
 	def down_scale(self, value):
 		#result = REFLECTION_FACTOR*(value/SCALE_FACTOR + 1.)
@@ -67,9 +63,10 @@ class AbeWriter(Actor):
 
 	@condition(action_input=("value",))
 	def write(self, value):
-		assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
+		if not fake:
+			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
 
-		self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
-		self.monitor_value = value
+			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
+			self.monitor_value = value
 
 	action_priority = (write, )

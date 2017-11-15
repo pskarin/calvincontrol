@@ -35,16 +35,32 @@ class BaB(Actor):
     ref:      Reference ball position in volts
   Outputs:
     u : Control signals
+
+  Migrated attributes:
+    ref_v  : Reference value in volts
+    prevpos: The last measured ball state
+    migration_delta: Clock time from last measurement when migrating
+    
   """
+  @manage(['ref_v', 'prevpos', 'migration_delta'])
   def init(self):
-    self.qp = QP()
+    self.ref_v = 0
     self.prevpos = None
-    self.prevtime = None
+    self.migration_delta = 0
+    self.setup()
+
+  def setup(self):
+    self.prevtime = time.time()-self.migration_delta
+    self.qp = QP()
     self.Q = np.array(self.qp.getQ()).reshape((self.qp.numStates(), self.qp.numStates()))
 
-  def did_migrate(self):
-    pass
+  def will_migrate(self):
+    self.migration_delta = time.time()-self.prevtime
 
+  def did_migrate(self):
+    self.setup()
+    self.updateref()
+    
   @condition(action_input=['angle', 'position'], action_output=['u'])
   def action(self, angle_v, position_v):
     angle = (angle_v/10.0)*math.pi/4
@@ -63,7 +79,11 @@ class BaB(Actor):
 
   @condition(action_input=['ref'], action_output=[])
   def setref(self, ref_v):
-    r = np.array(((-ref_v/10.0)*0.55, 0, 0))
+    self.ref_v = ref_v
+    self.updateref()
+
+  def updateref(self):
+    r = np.array(((-self.ref_v/10.0)*0.55, 0, 0))
     self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
         self.qp.numStates()*self.qp.horizon(), 1))
 
