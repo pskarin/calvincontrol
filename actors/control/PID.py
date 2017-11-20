@@ -14,12 +14,14 @@ class PID(Actor):
 		v: Control value
 	'''
 
-	@manage(['td', 'ti', 'tr', 'k', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 't_prev']) # 
-	def init(self, td=1., ti=5., tr=10., k=-.2, n=10., beta=1.):
+	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 't_prev']) # 
+	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1.):
 		self.td = td
 		self.ti = ti
 		self.tr = tr
-		self.k = k 
+		self.kp = kp
+		self.ki = ki 
+		self.kd = kd 
 		self.n = n
 		self.beta = beta
 
@@ -51,7 +53,7 @@ class PID(Actor):
 
 		# 
 		ad = self.td / (self.td + self.n*dt)
-		bd = self.k * ad * self.n
+		bd = self.kd * ad * self.n
 
 		# e
 		e = self.y_ref - y
@@ -60,10 +62,10 @@ class PID(Actor):
 		self.d = ad*self.d - bd*(y - self.y_old)
 
 		# Control signal
-		v = self.k * (self.beta * self.y_ref - y) + self.i + self.d
+		v = self.kp * (self.beta * self.y_ref - y) + self.i + self.d
 
 		# I
-		self.i += (self.k * dt/ self.ti) * e * (dt / self.tr) * (y-self.v)
+		self.i += (self.ki * dt/ self.ti) * e * (dt / self.tr) * (y-v)
 
 		# Update state
 		self.y_old = y

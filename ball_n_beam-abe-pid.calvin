@@ -1,6 +1,6 @@
 /* Actors */
-outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
-inner : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+outer : control.PID(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0)
+inner : control.PID(tr=1.0, kp=1.0, beta=1.0)
 
 act : io.AbeWriter(channel=1)
 ang : io.AbeReader(tick=0.05, channel=1)
