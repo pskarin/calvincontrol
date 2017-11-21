@@ -11,8 +11,8 @@ except ImportError:
 	print("Failed to import ADCDACPi from python system path")
 	fake = True
 
-P1 = 0.1675
-P2 = 1.656
+P1 = 0.165
+P2 = 1.65
 
 AVAIL_CHA = [1,2]
 MAX_OUT = 3.299
