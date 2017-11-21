@@ -4,15 +4,15 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 import time
 import os
 
-try:
+try:e
 	from ADCDACPi import ADCDACPi
-	fake = False
+	fake = Fals
 except ImportError:
 	print("Failed to import ADCDACPi from python system path")
 	fake = True
 
-P1 = 6.034
-P2 = -9.941
+P1 = 6.061
+P2 = -10.
 
 AVAIL_CHA = [1,2]
 MAX_OUT = 3.299
