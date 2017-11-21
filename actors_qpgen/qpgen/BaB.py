@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#		 http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,87 +21,88 @@ import numpy as np
 from qpballnbeam import QP
 import time
 import math
+import sys
 
 _log = get_actor_logger(__name__)
 
 
 class BaB(Actor):
-  """
-  Runs a simple MPC generated through QPgen
+	"""
+	Runs a simple MPC generated through QPgen
+	Migrated attributes:
+		ref_v	: Reference value in volts
+		prevpos: The last measured ball state
+		prevtime: Clock time from last measurement
 
-  Inputs:
-    angle:    Beam angle
-    position: Ball position
-    ref:      Reference ball position in volts
-  Outputs:
-    u : Control signals
+	Inputs:
+		angle:		Beam angle
+		position: Ball position
+		ref:			Reference ball position in volts
+	Outputs:
+		u : Control signals
+		
+	"""
+	@manage(['ref_v', 'prevpos', 'prevtime', 'u'])
+	def init(self):
+		self.ref_v = 0
+		self.prevpos = 0
+		self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
+		self.u = 0
+		self.setup()
 
-  Migrated attributes:
-    ref_v  : Reference value in volts
-    prevpos: The last measured ball state
-    migration_delta: Clock time from last measurement when migrating
-    
-  """
-  @manage(['ref_v', 'prevpos', 'migration_delta'])
-  def init(self):
-    self.ref_v = 0
-    self.prevpos = None
-    self.migration_delta = 0
-    self.setup()
+	def setup(self):
+		self.qp = QP()
+		self.Q = np.array(self.qp.getQ()).reshape((self.qp.numStates(), self.qp.numStates()))
+		self.h = 1./self.qp.getSampleRate()
 
-  def setup(self):
-    self.prevtime = time.time()-self.migration_delta
-    self.qp = QP()
-    self.Q = np.array(self.qp.getQ()).reshape((self.qp.numStates(), self.qp.numStates()))
+	def did_migrate(self):
+		self.setup()
+		self.updateref()
+		
+	@condition(action_input=['angle', 'position'], action_output=['u'])
+	def action(self, angle_vt, position_vt):
+		t = time.time()
+		angle_v, angle_t = angle_vt
+		position_v, position_t = position_vt
+		angle = (angle_v/10.0)*math.pi/4
+		position = (position_v/10.0)*0.55
+		speed = (position-self.prevpos)/self.h
+		self.prevtime = position_t
+		self.prevpos = position
+		self.qp.setState((position, speed, angle))
+		u0 = self.qp.run()
+		iterations = self.qp.getNumberOfIterations()
+		if iterations < 2000:
+			self.u = (u0[0]/(2*math.pi))*10.0
+		sys.stderr.write("a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} v:({:6.2f}) t:{:6.3f} i:{}\n".format(
+			angle,speed,position, u0[0], self.u, time.time()-t, iterations))
+		return (self.u,)
 
-  def will_migrate(self):
-    self.migration_delta = time.time()-self.prevtime
+	@condition(action_input=['ref'], action_output=[])
+	def setref(self, ref_v):
+		self.ref_v = ref_v
+		self.updateref()
 
-  def did_migrate(self):
-    self.setup()
-    self.updateref()
-    
-  @condition(action_input=['angle', 'position'], action_output=['u'])
-  def action(self, angle_v, position_v):
-    angle = (angle_v/10.0)*math.pi/4
-    position = (position_v/10.0)*0.55
-    speed = 0
-    t = time.time()
-    if self.prevpos != None:
-      speed = (position-self.prevpos)/(t-self.prevtime)
-    self.prevtime = t
-    self.prevpos = position
-    self.qp.setState((position, speed, angle))
-    u0 = self.qp.run()
-    u = (u0[0]/(2*math.pi))*10.0
-#    print("{:6.2f} {:6.2f} {:6.2f} => {:6.2f} ({:6.2f})".format(angle,speed,position, u0[0], u))
-    return (u,)
+	def updateref(self):
+		r = np.array(((-self.ref_v/10.0)*0.55, 0, 0))
+		self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
+				self.qp.numStates()*self.qp.horizon(), 1))
 
-  @condition(action_input=['ref'], action_output=[])
-  def setref(self, ref_v):
-    self.ref_v = ref_v
-    self.updateref()
+	action_priority = (action, setref)
 
-  def updateref(self):
-    r = np.array(((-self.ref_v/10.0)*0.55, 0, 0))
-    self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
-        self.qp.numStates()*self.qp.horizon(), 1))
+	def token_filter(port, token):
+		if port == 'u':
+			return map(lambda x: round(x, 2), token)
+		return token
 
-  action_priority = (action, setref)
+	# Double integrator sampled at 100Hz
+	test_args = []
 
-  def token_filter(port, token):
-    if port == 'u':
-      return map(lambda x: round(x, 2), token)
-    return token
-
-  # Double integrator sampled at 100Hz
-  test_args = []
-
-  test_set = [
-    {
-      'in': {'x': [[1,0], [0.9,0], [0.2, 0.1], [0,0]]},
-      'out': {'u': [[-0.66], [-0.60], [-0.27], [0.0]]},
-      'filter': token_filter
-    },
-  ]
+	test_set = [
+		{
+			'in': {'x': [[1,0], [0.9,0], [0.2, 0.1], [0,0]]},
+			'out': {'u': [[-0.66], [-0.60], [-0.27], [0.0]]},
+			'filter': token_filter
+		},
+	]
 
