@@ -1,0 +1,35 @@
+/* Actors */
+outer : control.PID_BnB(td=1.0, ti=5.0, tr=10.0, k=-0.2, n=10.0, beta=1.0)
+inner : control.PI_BnB(ti=0.0, tr=1.0, k=1.0, beta=1.0)
+
+act : io.AbeWriter(channel=1)
+ang : io.AbeReader(tick=0.05, channel=1)
+pos : io.AbeReader(tick=0.05, channel=2, debug=0)
+
+iosetp : io.Print()
+iopos : io.Print()
+/*ioang : io.Print()
+iovel : io.Print()*/
+
+texsetp : text.PrefixString(prefix="Setpoint: ")
+texpos : text.PrefixString(prefix="Position: ")
+/*texang : text.PrefixString(prefix="Angle: ")
+texvel : text.PrefixString(prefix="Velocity: ")*/
+
+#dis : misc.PacedValueIterator( tick=10.0, values=[0.0, 5.0, 0.0, -5.0])
+dis : misc.PacedValueIterator( tick=10.0, values=[0.0])
+#dis : misc.RandomIntervalRandomValueGenerator( tick_range=[5.0, 15.0], value_range=[-8.0, 8.0])
+
+/* Connections */
+pos.value > outer.y, texpos.in
+texpos.out > iopos.token
+
+ang.value > inner.y
+/* texang.out > ioang.token */
+
+outer.v > inner.y_ref
+inner.v > act.value
+/* texvel.out > iovel.token */
+
+dis.value > outer.y_ref, texsetp.in
+texsetp.out > iosetp.token

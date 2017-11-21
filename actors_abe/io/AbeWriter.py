@@ -3,6 +3,7 @@ from calvin.actor.actor import Actor, manage, condition
 
 import time
 import os
+import sys
 
 try:
 	from ADCDACPi import ADCDACPi
@@ -36,7 +37,7 @@ class AbeWriter(Actor):
 	  value(queue_length=1,routing="collect-lifo") : Input value
 	"""
 
-	@manage(['channel','gain_factor','adcdac'])
+	@manage(['channel','gain_factor'])
 	def init(self, channel, gain_factor=2):
 		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
 
@@ -68,5 +69,7 @@ class AbeWriter(Actor):
 
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
 			self.monitor_value = value
+		else:
+			sys.stderr.write("write: {}\n".format(value))
 
 	action_priority = (write, )

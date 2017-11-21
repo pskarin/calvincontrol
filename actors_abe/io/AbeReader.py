@@ -3,12 +3,13 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 
 import time
 import os
+import sys
 
 try:e
 	from ADCDACPi import ADCDACPi
 	fake = Fals
 except ImportError:
-	print("Failed to import ADCDACPi from python system path")
+	sys.stderr.write("Failed to import ADCDACPi from python system path\n")
 	fake = True
 
 P1 = 6.061
@@ -36,7 +37,7 @@ class AbeReader(Actor):
 	  value : ADC value in volts
 	"""
 
-	@manage(['tick', 'channel', 'timer', 'started', 'adcdac'])
+	@manage(['tick', 'channel', 'timer', 'started'])
 	def init(self, tick, channel, gain_factor=2, mode=0):
 		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
 
@@ -54,7 +55,9 @@ class AbeReader(Actor):
 		self.setup()
 
 	def setup(self):
+		self.use('calvinsys.native.python-time', shorthand='time')
 		self.use('calvinsys.events.timer', shorthand='timer')
+		self.time = self['time']
 		if not fake:
 			self.adcdac = ADCDACPi( self.gain_factor)
 			self.adcdac.set_adc_refvoltage(MAX_OUT)
@@ -86,7 +89,7 @@ class AbeReader(Actor):
 
 			self.monitor_value = value 
 
-		return (value, )
+		return ((value, self.time.timestamp()),)
 
 	action_priority = (start_timer, trigger)
-	requires = ['calvinsys.events.timer']
+	requires = ['calvinsys.events.timer', 'calvinsys.native.python-time']

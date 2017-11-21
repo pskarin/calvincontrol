@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# William Tärneberg 2017
 from calvin.actor.actor import Actor, manage, condition, stateguard
 
 class PacedValueIterator(Actor):
@@ -10,7 +9,7 @@ class PacedValueIterator(Actor):
 		value: a value from __values__
 	"""
 
-	@manage(['tick', 'values', 'index', 'started', 'delta'])
+	@manage(['tick', 'values', 'index', 'started'])
 	def init(self, tick, values):
 		self.tick = tick
 		self.values = values
@@ -18,8 +17,6 @@ class PacedValueIterator(Actor):
 		self.index = 0 
 		self.timer = None
 		self.started = False
-		self.delta = 0.
-		self.next_trig = None 
 		self.setup()
 
 	def setup(self):
@@ -27,15 +24,12 @@ class PacedValueIterator(Actor):
 		self.use('calvinsys.native.python-time', shorthand='time')
 
 	def start(self):
-		self.timer = self['timer'].repeat(self.tick-self.delta)
-		self.next_trig = self['time'].timestamp()+self.tick
-		self.delta = 0.
+		self.timer = self['timer'].repeat(self.tick)
 		self.started = True
 
 	def will_migrate(self):
 		if self.timer:
 			self.timer.cancel()
-			self.delta = self.next_trig - self['time'].timestamp()
 
 	def did_migrate(self):
 		self.setup()

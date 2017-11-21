@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # William Tärneberg 2017
+import sys
 from calvin.actor.actor import Actor, manage, condition
 
 class PID(Actor):
@@ -40,14 +41,21 @@ class PID(Actor):
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
 		self.time = self['time']
+		self.qt = self.time.timestamp()
 
 	def did_migrate(self):
 		self.setup()
 
 	@condition(['y'],['v'])
-	def evaluate(self, y):
-		# Time management - for event based controll 
-		t = self.time.timestamp()# ms?
+	def evaluate(self, yt):
+		for key, p  in self.inports.iteritems():
+			count = p.queue.write_pos - min(p.queue.read_pos.values() or [0])
+			if count > 0:
+				tmp = self.time.timestamp()
+				sys.stderr.write("{} {}: {} {:6.3f}\n".format(self.name, key, count, tmp-self.qt))
+				self.qt = tmp
+		# Time management - for event based controll
+		y, t = yt
 		dt = t-self.t_prev
 		self.t_prev = t
 
