@@ -8,10 +8,10 @@ class PID(Actor):
 	Generic PID
 	
 	Inputs:
-		y: Measured value
-		y_ref: Reference point
+		y(queue_length=1,routing="collect-lifo"): Measured value
+		y_ref(queue_length=1,routing="collect-lifo"): Reference point
 	Outputs:
-		v: Control value
+		v: Control value 
 	'''
 
 	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 't_prev']) # 
