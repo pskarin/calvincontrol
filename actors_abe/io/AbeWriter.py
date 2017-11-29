@@ -33,7 +33,7 @@ class AbeWriter(Actor):
 		- AB Electronics python libraries https://github.com/abelectronicsuk/ABElectronics_Python_Libraries.git
 
 	Inputs:
-	  value : Input value
+	  value(queue_length=1,routing="collect-lifo") : Input value
 	"""
 
 	@manage(['channel','gain_factor','adcdac'])
