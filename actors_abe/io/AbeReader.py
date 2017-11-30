@@ -5,9 +5,9 @@ import time
 import os
 import sys
 
-try:e
+try:
 	from ADCDACPi import ADCDACPi
-	fake = Fals
+	fake = False
 except ImportError:
 	sys.stderr.write("Failed to import ADCDACPi from python system path\n")
 	fake = True

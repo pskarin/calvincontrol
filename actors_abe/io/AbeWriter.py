@@ -49,6 +49,8 @@ class AbeWriter(Actor):
 		self.setup()
 
 	def setup(self):
+		self.use('calvinsys.native.python-time', shorthand='time')
+		self.time = self['time']
 		if not fake:
 			self.adcdac = ADCDACPi( self.gain_factor)
 			self.adcdac.set_dac_voltage(self.channel, self.down_scale(0.0))
@@ -63,13 +65,15 @@ class AbeWriter(Actor):
 		return result
 
 	@condition(action_input=("value",))
-	def write(self, value):
+	def write(self, value_ts):
+		value, ts = value_ts
 		if not fake:
 			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
-
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
 			self.monitor_value = value
 		else:
-			sys.stderr.write("write: {}\n".format(value))
+			sys.stderr.write("write: {}\n".format(value_ts))
+#		sys.stderr.write("in-out delta time: {:6.2f}\n".format((self.time.timestamp()-ts)*1000))
 
 	action_priority = (write, )
+	requires = ['calvinsys.native.python-time']
