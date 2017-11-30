@@ -46,7 +46,7 @@ class PacedValueIterator(Actor):
 
 		self.monitor_value = value
 
-		return (value, )
+		return ((value, self['time'].timestamp()), )
 
 	@stateguard(lambda self: self.timer and self.timer.triggered)
 	@condition([], ['value'])
@@ -57,7 +57,7 @@ class PacedValueIterator(Actor):
 
 		self.monitor_value = value
 
-		return (value, )
+		return ((value, self['time'].timestamp()),)
 
 	action_priority = (start_timer, trigger)
 	requires = ['calvinsys.events.timer','calvinsys.native.python-time']

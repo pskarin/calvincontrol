@@ -15,8 +15,8 @@ class PID(Actor):
 		v: Control value 
 	'''
 
-	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 't_prev']) # 
-	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1.):
+	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 'y_prev_t', 'ref_prev_t', 'ts_fwd_ref']) # 
+	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., ts_fwd_ref=False):
 		self.td = td
 		self.ti = ti
 		self.tr = tr
@@ -25,6 +25,7 @@ class PID(Actor):
 		self.kd = kd 
 		self.n = n
 		self.beta = beta
+		self.ts_fwd_ref = ts_fwd_ref
 
 		self.i = 0.
 		self.d = 0.
@@ -36,7 +37,8 @@ class PID(Actor):
 
 		self.setup()
 
-		self.t_prev = self.time.timestamp()
+		self.y_prev_t = self.time.timestamp()
+		self.ref_prev_t = self.time.timestamp()
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
@@ -56,8 +58,8 @@ class PID(Actor):
 				self.qt = tmp
 		# Time management - for event based controll
 		y, t = yt
-		dt = t-self.t_prev
-		self.t_prev = t
+		dt = t-self.y_prev_t
+		self.y_prev_t = t
 
 		# 
 		ad = self.td / (self.td + self.n*dt)
@@ -80,11 +82,13 @@ class PID(Actor):
 
 		self.monitor_value = v
 
-		return (v, )
+		fwd_ts = self.ref_prev_t if self.ts_fwd_ref else self.y_prev_t 
+    
+		return ((v, fwd_ts), )
 
 	@condition(['y_ref'],[])
-	def set_ref(self, y_ref):
-		self.y_ref = y_ref
+	def set_ref(self, yt_ref):
+		self.y_ref, self.ref_prev_t = yt_ref
 
 	action_priority = (evaluate, set_ref)
 	requires = ['calvinsys.native.python-time']
