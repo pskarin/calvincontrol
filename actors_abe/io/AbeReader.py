@@ -33,22 +33,19 @@ class AbeReader(Actor):
 		- PySPI Dev
 		- AB Electronics python libraries https://github.com/abelectronicsuk/ABElectronics_Python_Libraries.git
 
+	Inputs:
+	  tick : Clock tick
 	Outputs:
 	  value : ADC value in volts
 	"""
 
-	@manage(['tick', 'channel', 'timer', 'started'])
-	def init(self, tick, channel, gain_factor=2, mode=0):
+	@manage(['channel'])
+	def init(self, channel, gain_factor=2, mode=0):
 		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
-
-		self.tick = tick
 
 		self.channel = channel
 		self.gain_factor = gain_factor
 		self.mode = mode
-
-		self.timer = None 
-		self.started = False 
 
 		self.adcdac = None
 
@@ -56,15 +53,10 @@ class AbeReader(Actor):
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
-		self.use('calvinsys.events.timer', shorthand='timer')
 		self.time = self['time']
 		if not fake:
 			self.adcdac = ADCDACPi( self.gain_factor)
 			self.adcdac.set_adc_refvoltage(MAX_OUT)
-
-	def start(self):
-		self.timer = self['timer'].repeat(self.tick)
-		self.started = True
 
 	def up_scale(self, value):
 		#result = SCALE_FACTOR*(value - 1.)/REFLECTION_FACTOR
@@ -74,22 +66,15 @@ class AbeReader(Actor):
 
 		return result 
 
-	@stateguard(lambda self: not self.started)
-	@condition([], [])
-	def start_timer(self):
-		self.start()
-
-	@stateguard(lambda self: self.timer and self.timer.triggered)
-	@condition([], ['value'])
-	def trigger(self):
+	@condition(['tick'], ['value'])
+	def trigger(self, tick):
 		value = 0.
 		if not fake:
-			self.timer.ack()
 			value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode))
 
 			self.monitor_value = value 
 
 		return ((value, self.time.timestamp()),)
 
-	action_priority = (start_timer, trigger)
-	requires = ['calvinsys.events.timer', 'calvinsys.native.python-time']
+	action_priority = (trigger,)
+	requires = ['calvinsys.native.python-time']

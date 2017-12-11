@@ -76,7 +76,7 @@ class BaB(Actor):
 			self.u = (u0[0]/(2*math.pi))*10.0
 		sys.stderr.write("a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} v:({:6.2f}) t:{:6.3f} i:{}\n".format(
 			angle,speed,position, u0[0], self.u, time.time()-t, iterations))
-		return (self.u,)
+		return ((self.u, position_t),)
 
 	@condition(action_input=['ref'], action_output=[])
 	def setref(self, ref_v):
