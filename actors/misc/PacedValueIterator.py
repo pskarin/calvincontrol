@@ -5,27 +5,28 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 class PacedValueIterator(Actor):
 	"""
 	Sequentially pass a value from __values__ at __tick__
+	Inputs:
+		tick: Clock tick
 	Outputs:
 		value: a value from __values__
 	"""
 
-	@manage(['tick', 'values', 'index', 'started'])
-	def init(self, tick, values):
-		self.tick = tick
+	@manage(['period', 'values', 'index'])
+	def init(self, period, values):
+		self.period = period
 		self.values = values
 		# Add exception for len(values) <= 2
 		self.index = 0 
 		self.timer = None
-		self.started = False
 		self.setup()
 
 	def setup(self):
 		self.use('calvinsys.events.timer', shorthand='timer')
 		self.use('calvinsys.native.python-time', shorthand='time')
+		self.start()
 
 	def start(self):
-		self.timer = self['timer'].repeat(self.tick)
-		self.started = True
+		self.timer = self['timer'].repeat(self.period)
 
 	def will_migrate(self):
 		if self.timer:
@@ -33,31 +34,18 @@ class PacedValueIterator(Actor):
 
 	def did_migrate(self):
 		self.setup()
-		if self.started:
-			self.start()
 
-	@stateguard(lambda self: not self.started)
-	@condition([], ['value'])
-	def start_timer(self):
-		self.start()
-
+	@condition(['tick'], ['value'])
+	def clocktick(self, tick):
 		value = self.values[self.index]
-		self.index =  (self.index + 1)%len(self.values)
-
 		self.monitor_value = value
-
-		return ((value, self['time'].timestamp()), )
-
+		return ((value, self['time'].timestamp()),)
+    
 	@stateguard(lambda self: self.timer and self.timer.triggered)
-	@condition([], ['value'])
+	@condition([], [])
 	def trigger(self):
 		self.timer.ack()
-		value = self.values[self.index]
 		self.index =  (self.index + 1)%len(self.values)
 
-		self.monitor_value = value
-
-		return ((value, self['time'].timestamp()),)
-
-	action_priority = (start_timer, trigger)
+	action_priority = (clocktick, trigger)
 	requires = ['calvinsys.events.timer','calvinsys.native.python-time']

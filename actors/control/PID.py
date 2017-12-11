@@ -15,7 +15,7 @@ class PID(Actor):
 		v: Control value 
 	'''
 
-	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 'y_prev_t', 'ref_prev_t', 'ts_fwd_ref']) # 
+	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_ref', 'y_prev_t', 'ref_prev_t', 'ts_fwd_ref'])
 	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., ts_fwd_ref=False):
 		self.td = td
 		self.ti = ti
@@ -48,15 +48,10 @@ class PID(Actor):
 	def did_migrate(self):
 		self.setup()
 
-	@condition(['y'],['v'])
-	def evaluate(self, yt):
-		for key, p  in self.inports.iteritems():
-			count = p.queue.write_pos - min(p.queue.read_pos.values() or [0])
-			if count > 0:
-				tmp = self.time.timestamp()
-				sys.stderr.write("{} {}: {} {:6.3f}\n".format(self.name, key, count, tmp-self.qt))
-				self.qt = tmp
-		# Time management - for event based controll
+	@condition(['y', 'y_ref'],['v'])
+	def evaluate(self, yt, yt_ref):
+		# Time management - for event based control
+		self.y_ref, self.ref_prev_t = yt_ref
 		y, t = yt
 		dt = t-self.y_prev_t
 		self.y_prev_t = t
@@ -86,9 +81,5 @@ class PID(Actor):
     
 		return ((v, fwd_ts), )
 
-	@condition(['y_ref'],[])
-	def set_ref(self, yt_ref):
-		self.y_ref, self.ref_prev_t = yt_ref
-
-	action_priority = (evaluate, set_ref)
+	action_priority = (evaluate,)
 	requires = ['calvinsys.native.python-time']

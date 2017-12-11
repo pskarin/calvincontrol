@@ -71,9 +71,7 @@ class AbeWriter(Actor):
 			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
 			self.monitor_value = value
-		else:
-			sys.stderr.write("write: {}\n".format(value_ts))
-#		sys.stderr.write("in-out delta time: {:6.2f}\n".format((self.time.timestamp()-ts)*1000))
+		self.monitor_value = self.time.timestamp()-ts
 
 	action_priority = (write, )
 	requires = ['calvinsys.native.python-time']
