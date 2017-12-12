@@ -2,6 +2,7 @@
 from calvin.actor.actor import Actor, manage, condition
 import posix_ipc as ipc
 import math
+import sys
 
 class SimWriter(Actor):
 
@@ -9,7 +10,7 @@ class SimWriter(Actor):
     Writes to process simulation through a message queue
 
     Input:
-      value : Input value
+      value : Input value & time
     """
 
     @manage(['device',])
@@ -30,9 +31,9 @@ class SimWriter(Actor):
     @condition(action_input=("value",))
     def write(self, value):
         try:
-          self.outqueue.send("{}".format((value/10.0)*2*math.pi))
-	  self.monitor_value = value
+          self.outqueue.send("{}".format((value[0]/10.0)*2*math.pi))
+          self.monitor_value = value
         except ipc.BusyError:
-          print("Failed to set new input, this should not happen")
+          sys.stderr.write("Failed to set new input, this should not happen\n")
 
     action_priority = (write, )
