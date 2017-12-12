@@ -59,13 +59,22 @@ class BaB(Actor):
 		self.setup()
 		self.updateref()
 		
+	def volt2pos(self, v):
+		return (v/10.0)*0.55 # Why was this negative?
+
+	def volt2angle(self, v):
+		return (v/10.0)*math.pi/4
+		
+	def angular2volt(self, a):
+		return (a/(2*math.pi))*10.0
+
 	@condition(action_input=['angle', 'position'], action_output=['u'])
 	def action(self, angle_vt, position_vt):
 		t = time.time()
 		angle_v, angle_t = angle_vt
 		position_v, position_t = position_vt
-		angle = (angle_v/10.0)*math.pi/4
-		position = (position_v/10.0)*0.55
+		angle = self.volt2angle(angle_v)
+		position = self.volt2pos(position_v)
 		speed = (position-self.prevpos)/self.h
 		self.prevtime = position_t
 		self.prevpos = position
@@ -73,18 +82,20 @@ class BaB(Actor):
 		u0 = self.qp.run()
 		iterations = self.qp.getNumberOfIterations()
 		if iterations < 2000:
-			self.u = (u0[0]/(2*math.pi))*10.0
-		sys.stderr.write("a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} v:({:6.2f}) t:{:6.3f} i:{}\n".format(
-			angle,speed,position, u0[0], self.u, time.time()-t, iterations))
+			self.u = self.angular2volt(u0[0])
+		else:
+			self.u = 0
+		sys.stderr.write("r:{:6.2f} a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} t:{:6.2f} i:{}\n".format(
+			self.volt2pos(self.ref_v), angle,speed,position, u0[0], time.time()-t, iterations))
 		return ((self.u, position_t),)
 
 	@condition(action_input=['ref'], action_output=[])
-	def setref(self, ref_v):
-		self.ref_v = ref_v
+	def setref(self, ref_vt):
+		self.ref_v, t = ref_vt
 		self.updateref()
 
 	def updateref(self):
-		r = np.array(((-self.ref_v/10.0)*0.55, 0, 0))
+		r = np.array((self.volt2pos(self.ref_v), 0, 0))
 		self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
 				self.qp.numStates()*self.qp.horizon(), 1))
 
