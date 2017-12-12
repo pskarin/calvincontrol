@@ -1,15 +1,16 @@
 /* Actors */
-mpc: qpgen.BaB()
+clock : misc.Clock(period=0.05)
+mpc : qpgen.BaB()
 
-ang : io.SimReader(tick=0.1, device="/bbsim_out1-0", scale=0.785)
-pos : io.SimReader(tick=0.1, device="/bbsim_out2-0", scale=0.55)
 act : io.SimWriter(device="/bbsim_in-0")
+ang : io.SimReader(device="/bbsim_out1-0", scale=0.785)
+pos : io.SimReader(device="/bbsim_out2-0", scale=0.55)
 
-dis : misc.PacedValueIterator(tick=10.0, values=[0, 5.0, -5.0])
+dis : misc.PacedValueIterator( period=5.0, values=[0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 /* Connections */
+clock.tick > ang.tick, pos.tick, dis.tick
 pos.value > mpc.position
 ang.value > mpc.angle
 mpc.u > act.value
 dis.value > mpc.ref
-
