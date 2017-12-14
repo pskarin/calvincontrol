@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
+import numpy as np
 
 class SimReader(Actor):
 
@@ -13,11 +14,12 @@ class SimReader(Actor):
 		value: Output value
 	"""
 
-	@manage(['device', 'value', 'scale'])
-	def init(self, device, scale):
+	@manage(['device', 'value', 'scale', 'noise'])
+	def init(self, device, scale, noise=0.):
 		self.device = device
 		self.value = 0
 		self.scale = scale
+		self.noise = noise
 		self.setup()
 
 	def setup(self):
@@ -35,7 +37,9 @@ class SimReader(Actor):
 	def read(self):
 		try:        
 			message, priority = self.inqueue.receive(0) # Get input signal
-			self.value = max(-10.0, min(10.0, float(message)/self.scale*10.0))
+			self.value = float(message)/self.scale*10.0
+			if self.noise > 0: self.value += np.random.normal(0, self.noise, 1)[0]
+			self.value = max(-10.0, min(10.0, self.value))
 		except ipc.BusyError:
 			pass
 		return self.value
