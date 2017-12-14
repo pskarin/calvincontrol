@@ -9,8 +9,8 @@ class PID(Actor):
 	Generic PID
 	
 	Inputs:
-		y(queue_length=1,routing="collect-lifo"): Measured value
-		y_ref(queue_length=1,routing="collect-lifo"): Reference point
+		y(routing="collect-single-slot"): Measured value
+		y_ref(routing="collect-single-slot"): Reference point
 	Outputs:
 		v: Control value 
 	'''
@@ -75,10 +75,10 @@ class PID(Actor):
 		# Update state
 		self.y_old = y
 
-		self.monitor_value = v
+		self.monitor_value = (v, self.y_ref)
 
 		fwd_ts = self.ref_prev_t if self.ts_fwd_ref else self.y_prev_t 
-    
+
 		return ((v, fwd_ts), )
 
 	action_priority = (evaluate,)

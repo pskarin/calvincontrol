@@ -34,7 +34,7 @@ class AbeWriter(Actor):
 		- AB Electronics python libraries https://github.com/abelectronicsuk/ABElectronics_Python_Libraries.git
 
 	Inputs:
-	  value(queue_length=1,routing="collect-lifo") : Input value
+	  value(routing="collect-single-slot") : Input value
 	"""
 
 	@manage(['channel','gain_factor'])
