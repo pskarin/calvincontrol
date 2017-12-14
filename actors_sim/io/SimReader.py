@@ -2,6 +2,7 @@
 from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
 import numpy as np
+import sys
 
 class SimReader(Actor):
 
@@ -47,8 +48,8 @@ class SimReader(Actor):
 	@condition(['tick'], ['value'])
 	def trigger(self, tick):
 		value = self.read()
-		self.monitor_value = value 
-		return ((value, self.time.timestamp()),)
+		self.monitor_value = value
+		return ((value, self.time.timestamp(), tick),)
 
 	action_priority = (trigger,)
 	requires = ['calvinsys.native.python-time']

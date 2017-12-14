@@ -66,7 +66,7 @@ class AbeWriter(Actor):
 
 	@condition(action_input=("value",))
 	def write(self, value_ts):
-		value, ts = value_ts
+		value, ts, tick = value_ts
 		if not fake:
 			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
