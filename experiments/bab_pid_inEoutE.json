@@ -1,0 +1,11 @@
+{
+  "requirements": {
+    "inner": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"edge-1"}]}, "type":"+"}],
+    "outer": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"edge-1"}]}, "type":"+"}],
+    "ang": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-1"}]}, "type":"+"}],
+    "pos": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-1"}]}, "type":"+"}],
+    "act": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-1"}]}, "type":"+"}],
+    "dis": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-1"}]}, "type":"+"}],
+    "clock": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-1"}]}, "type":"+"}]
+	}
+}
