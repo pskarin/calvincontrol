@@ -55,6 +55,9 @@ class AbeWriter(Actor):
 			self.adcdac = ADCDACPi( self.gain_factor)
 			self.adcdac.set_dac_voltage(self.channel, self.down_scale(0.0))
 
+	def did_migrate(self):
+		self.setup()
+
 	def down_scale(self, value):
 		#result = REFLECTION_FACTOR*(value/SCALE_FACTOR + 1.)
 		

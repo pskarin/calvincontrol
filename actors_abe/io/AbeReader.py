@@ -58,6 +58,9 @@ class AbeReader(Actor):
 			self.adcdac = ADCDACPi( self.gain_factor)
 			self.adcdac.set_adc_refvoltage(MAX_OUT)
 
+	def did_migrate(self):
+		self.setup()
+
 	def up_scale(self, value):
 		#result = SCALE_FACTOR*(value - 1.)/REFLECTION_FACTOR
 		 
