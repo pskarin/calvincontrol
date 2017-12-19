@@ -8,7 +8,7 @@ class Clock(Actor):
     Outputs:
         tick: tick count
     """
-    @manage(['timer', 'period', 'started'])
+    @manage(['timer', 'period', 'started', 'tick'])
     def init(self, period):
         self.period = period
         self.timer = calvinsys.open(self, "sys.timer.repeating")
