@@ -2,9 +2,7 @@
 
 # William Tärneberg 2017
 
-from calvin.actor.actor import Actor, manage, condition, stateguard
-
-import random as rnd
+from calvin.actor.actor import Actor, manage, condition
 
 class 3xSyncBarrier(Actor):
 	"""
@@ -24,6 +22,9 @@ class 3xSyncBarrier(Actor):
 		self.prev_sync_time = None
 
 		self.setup()
+
+	def did_migrate(self):
+        self.setup()
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
