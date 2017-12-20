@@ -13,7 +13,7 @@ class PID(Actor):
 		v: Control value 
 	'''
 
-	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'yt', 'y_old', 'yt_ref', 'y_prev_t', 'ref_prev_t', 'ts_fwd_ref', 'output'])
+	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_prev_t', 'ref_prev_t', 'ts_fwd_ref'])
 	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., ts_fwd_ref=False):
 		self.td = td
 		self.ti = ti
@@ -29,14 +29,14 @@ class PID(Actor):
 		self.d = 0.
 
 		self.y_old = 0.
-		self.yt = None
-		self.yt_ref = None
 
 		self.time = None
-		self.output = False
 		self.setup()
 		self.y_prev_t = self.time.timestamp()
 		self.ref_prev_t = self.time.timestamp()
+    
+		self.yta = []
+		self.yt_refa = []
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
@@ -46,21 +46,42 @@ class PID(Actor):
 	def did_migrate(self):
 		self.setup()
 
-	@condition(['y', 'y_ref'],[])
-	def cal_input(self, yt, yt_ref):
-		self.yt = yt
-		self.yt_ref = yt_ref
-		for key,port in self.inports.iteritems():
-				if port.num_tokens() == 0:
-						self.output = True
-						self.monitor_value = (self.yt[2], self.yt_ref[2])
+	def pre_condition_wrapper(self):
+		""" NOTE! The algorithm at this point assumes that there are only two queues! """
+		isready = True
+		keys = self.inports.keys()
+		discarded = {}
+		for k in keys: discarded[k] = 0    
+		for xk,xv in self.inports.iteritems():
+			if xv.num_tokens() > 0:
+				top = xv.get_token_from_top(0).value
+				for yk in [k for k in keys if not k == xk]:
+					yv = self.inports[yk]
+					cont = True
+					while yv.num_tokens() > 1 and cont:
+						yt0 = yv.get_token_from_top(0).value
+						yt1 = yv.get_token_from_top(1).value
+						if abs(yt0[1]-top[1]) > abs(yt1[1]-top[1]):
+							yv.read()
+							discarded[yk] += 1
+						else:
+							cont = False
+			else:
+				isready = False # Some queue is empty
+		if isready:
+			mintokens = min([x.num_tokens() for x in self.inports.values()])
+			for xk in keys:
+				xv = self.inports[xk]
+				for r in range(0, mintokens-1):
+					xv.read()
+					discarded[xk] += 1
+				self.log_queue_precond(xk, discarded[xk], xv.get_token_from_top(0).value[1])
 
-	@stateguard(lambda self: self.output)
-	@condition([],['v'])
-	def cal_output(self):
+	@condition(['y', 'y_ref'],['v'])
+	def cal_output(self, yt, yt_ref):
 		# Time management - for event based control
-		y_ref, self.ref_prev_t, tick = self.yt_ref
-		y, t, _tick = self.yt
+		y_ref, self.ref_prev_t, tick = yt_ref
+		y, t, _tick = yt
 		dt = t-self.y_prev_t
 		self.y_prev_t = t
 
@@ -87,8 +108,7 @@ class PID(Actor):
 
 		fwd_ts = self.ref_prev_t if self.ts_fwd_ref else self.y_prev_t 
 
-		self.output = False
 		return ((v, fwd_ts, tick), )
 
-	action_priority = (cal_input, cal_output,)
+	action_priority = (cal_output,)
 	requires = ['calvinsys.native.python-time']
