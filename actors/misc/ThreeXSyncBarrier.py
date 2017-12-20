@@ -12,9 +12,9 @@ class ThreeXSyncBarrier(Actor):
 		in2(routing="collect-single-slot"): token 2  
 		in3(routing="collect-single-slot"): token 3  
 	Outputs:
-		out1 : token 1 
-		out2 : token 2 
-		out3 : token 3 
+		out1(queue_length=1): token 1 
+		out2(queue_length=1): token 2 
+		out3(queue_length=1): token 3 
 	"""
 
 	@manage(['prev_sync_time'])
