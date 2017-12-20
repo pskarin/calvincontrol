@@ -4,7 +4,7 @@
 
 from calvin.actor.actor import Actor, manage, condition
 
-class 3xSyncBarrier(Actor):
+class ThreeXSyncBarrier(Actor):
 	"""
 	Pass input after a given delay
 	Input :
@@ -23,7 +23,7 @@ class 3xSyncBarrier(Actor):
 		self.setup()
 
 	def did_migrate(self):
-        self.setup()
+		self.setup()
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')

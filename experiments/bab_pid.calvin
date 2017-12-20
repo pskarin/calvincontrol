@@ -9,7 +9,7 @@ pos : io.AbeReader(channel=2)
 
 dis : misc.PacedValueIterator( period=10.0, values=[0.0, 0.0, 0.0, 0.0])
 
-sync : misc.3xSyncBarrier()
+sync : misc.ThreeXSyncBarrier()
 
 /* Connections */
 clock.tick > ang.tick, dis.tick, pos.tick
