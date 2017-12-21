@@ -46,36 +46,36 @@ class PID(Actor):
 	def did_migrate(self):
 		self.setup()
 
-	def pre_condition_wrapper(self):
-		""" NOTE! The algorithm at this point assumes that there are only two queues! """
-		isready = True
-		keys = self.inports.keys()
-		discarded = {}
-		for k in keys: discarded[k] = 0    
-		for xk,xv in self.inports.iteritems():
-			if xv.num_tokens() > 0:
-				top = xv.get_token_from_top(0).value
-				for yk in [k for k in keys if not k == xk]:
-					yv = self.inports[yk]
-					cont = True
-					while yv.num_tokens() > 1 and cont:
-						yt0 = yv.get_token_from_top(0).value
-						yt1 = yv.get_token_from_top(1).value
-						if abs(yt0[1]-top[1]) > abs(yt1[1]-top[1]):
-							yv.read()
-							discarded[yk] += 1
-						else:
-							cont = False
-			else:
-				isready = False # Some queue is empty
-		if isready:
-			mintokens = min([x.num_tokens() for x in self.inports.values()])
-			for xk in keys:
-				xv = self.inports[xk]
-				for r in range(0, mintokens-1):
-					xv.read()
-					discarded[xk] += 1
-				self.log_queue_precond(xk, discarded[xk], xv.get_token_from_top(0).value[1])
+#	def pre_condition_wrapper(self):
+#		""" NOTE! The algorithm at this point assumes that there are only two queues! """
+#		isready = True
+#		keys = self.inports.keys()
+#		discarded = {}
+#		for k in keys: discarded[k] = 0    
+#		for xk,xv in self.inports.iteritems():
+#			if xv.num_tokens() > 0:
+#				top = xv.get_token_from_top(0).value
+#				for yk in [k for k in keys if not k == xk]:
+#					yv = self.inports[yk]
+#					cont = True
+#					while yv.num_tokens() > 1 and cont:
+#						yt0 = yv.get_token_from_top(0).value
+#						yt1 = yv.get_token_from_top(1).value
+#						if abs(yt0[1]-top[1]) > abs(yt1[1]-top[1]):
+#							yv.read()
+#							discarded[yk] += 1
+#						else:
+#							cont = False
+#			else:
+#				isready = False # Some queue is empty
+#		if isready:
+#			mintokens = min([x.num_tokens() for x in self.inports.values()])
+#			for xk in keys:
+#				xv = self.inports[xk]
+#				for r in range(0, mintokens-1):
+#					xv.read()
+#					discarded[xk] += 1
+#				self.log_queue_precond(xk, discarded[xk], xv.get_token_from_top(0).value[1])
 
 	@condition(['y', 'y_ref'],['v'])
 	def cal_output(self, yt, yt_ref):

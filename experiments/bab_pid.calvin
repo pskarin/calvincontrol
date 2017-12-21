@@ -9,18 +9,10 @@ pos : io.AbeReader(channel=2)
 
 dis : misc.PacedValueIterator( period=10.0, values=[0.0, 0.0, 0.0, 0.0])
 
-sync : misc.ThreeXSyncBarrier()
-
 /* Connections */
-clock.tick > ang.tick, dis.tick, pos.tick
-
-pos.value > sync.in1
-dis.value > sync.in2
-ang.value > sync.in3
-
-sync.out1 > outer.y
-sync.out2 > outer.y_ref
-sync.out3 > inner.y
-
+clock.tick > ang.tick, pos.tick, dis.tick
+pos.value > outer.y
+ang.value > inner.y
 outer.v > inner.y_ref
 inner.v > act.value
+dis.value > outer.y_ref
