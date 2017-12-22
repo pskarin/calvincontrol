@@ -73,8 +73,13 @@ class AbeWriter(Actor):
 		if not fake:
 			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
-			self.monitor_value = value
-		self.monitor_value = self.time.timestamp()-ts
+		myts = self.time.timestamp()
+		diffs = []
+		for t in ts:
+			diffs.append(myts-t)
+		if max(diffs) > 0.1:
+			self.monitor_value_0 = diffs
+		self.monitor_value = (myts,)+ts
 
 	action_priority = (write, )
 	requires = ['calvinsys.native.python-time']

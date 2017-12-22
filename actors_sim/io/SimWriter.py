@@ -35,7 +35,11 @@ class SimWriter(Actor):
         value, ts, tick = value_ts
         try:
           self.outqueue.send("{}".format((value/10.0)*2*math.pi))
-          self.monitor_value = self.time.timestamp()-ts
+          myts = self.time.timestamp()
+          diffs = []
+          for t in ts:
+						diffs.append(myts-t)
+          self.monitor_value = diffs
         except ipc.BusyError:
           sys.stderr.write("Failed to set new input, this should not happen\n")
 
