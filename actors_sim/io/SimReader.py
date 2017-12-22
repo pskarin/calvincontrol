@@ -49,7 +49,7 @@ class SimReader(Actor):
 	def trigger(self, tick):
 		value = self.read()
 		self.monitor_value = value
-		return ((value, self.time.timestamp(), tick),)
+		return ((value, (self.time.timestamp(),), tick),)
 
 	action_priority = (trigger,)
 	requires = ['calvinsys.native.python-time']

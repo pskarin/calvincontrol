@@ -30,7 +30,7 @@ class BaB(Actor):
 	"""
 	Runs a simple MPC generated through QPgen
 	Migrated attributes:
-		ref_v	: Reference value in volts
+		ref_vt: Reference value in volts and time
 		prevpos: The last measured ball state
 		prevtime: Clock time from last measurement
 
@@ -42,9 +42,9 @@ class BaB(Actor):
 		u : Control signals
 		
 	"""
-	@manage(['ref_v', 'prevpos', 'prevtime', 'u'])
+	@manage(['ref_vt', 'prevpos', 'prevtime', 'u'])
 	def init(self):
-		self.ref_v = 0
+		self.ref_vt = (0,(0,))
 		self.prevpos = 0
 		self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
 		self.u = 0
@@ -60,23 +60,26 @@ class BaB(Actor):
 		self.updateref()
 		
 	def volt2pos(self, v):
-		return (v/10.0)*0.55 # Why was this negative?
+		return (v/10.0)*0.55
 
 	def volt2angle(self, v):
 		return (v/10.0)*math.pi/4
 		
 	def angular2volt(self, a):
-		return (a/(2*math.pi))*10.0
+#		return (a/(2*math.pi))*10.0
+		return (a/4.5)*10.0
 
-	@condition(action_input=['angle', 'position'], action_output=['u'])
-	def action(self, angle_vt, position_vt):
-		t = time.time()
-		angle_v, angle_t = angle_vt
-		position_v, position_t = position_vt
+	@condition(action_input=['angle', 'position', 'ref'], action_output=['u'])
+	def action(self, angle_vt, position_vt, ref_vt):
+		start_t = time.time()
+		angle_v, angle_t, atick = angle_vt
+		self.ref_vt = ref_vt[0:2]
+		self.updateref()
+		position_v, position_t, ptick = position_vt
 		angle = self.volt2angle(angle_v)
 		position = self.volt2pos(position_v)
-		speed = (position-self.prevpos)/self.h
-		self.prevtime = position_t
+		speed = (position-self.prevpos)/(position_t[0]-self.prevtime)
+		self.prevtime = position_t[0]
 		self.prevpos = position
 		self.qp.setState((position, speed, angle))
 		u0 = self.qp.run()
@@ -85,21 +88,23 @@ class BaB(Actor):
 			self.u = self.angular2volt(u0[0])
 		else:
 			self.u = 0
-		sys.stderr.write("r:{:6.2f} a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} t:{:6.2f} i:{}\n".format(
-			self.volt2pos(self.ref_v), angle,speed,position, u0[0], time.time()-t, iterations))
-		return ((self.u, position_t),)
+		end_t = time.time()
+#		sys.stderr.write("r:{:6.2f} a:{:6.2f} s:{:6.2f} p:{:6.2f} => w:{:6.2f} t:{:6.2f} i:{}\n".format(
+#			self.volt2pos(self.ref_vt[0]), angle,speed,position, u0[0], end_t-start_t, iterations))
+		self.monitor_value = (self.u, iterations, end_t-start_t, speed)
+		return ((self.u, (position_t+angle_t+self.ref_vt[1]), 0),)
 
-	@condition(action_input=['ref'], action_output=[])
-	def setref(self, ref_vt):
-		self.ref_v, t = ref_vt
-		self.updateref()
+#	@condition(action_input=['ref'], action_output=[])
+#	def setref(self, ref_vt):
+#		self.ref_vt = ref_vt[0:2]
+#		self.updateref()
 
 	def updateref(self):
-		r = np.array((self.volt2pos(self.ref_v), 0, 0))
+		r = np.array((self.volt2pos(self.ref_vt[0]), 0, 0))
 		self.qp.setTargetStates(np.tile(np.dot(self.Q, r), (self.qp.horizon(),1)).reshape(
 				self.qp.numStates()*self.qp.horizon(), 1))
 
-	action_priority = (action, setref)
+	action_priority = (action,)
 
 	def token_filter(port, token):
 		if port == 'u':

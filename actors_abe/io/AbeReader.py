@@ -77,7 +77,7 @@ class AbeReader(Actor):
 
 			self.monitor_value = value 
 
-		return ((value, self.time.timestamp(), tick),)
+		return ((value, (self.time.timestamp(),), tick),)
 
 	action_priority = (trigger,)
 	requires = ['calvinsys.native.python-time']
