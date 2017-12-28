@@ -40,9 +40,10 @@ class AbeReader(Actor):
 	"""
 
 	@manage(['channel'])
-	def init(self, channel, gain_factor=2, mode=0):
+	def init(self, channel, gain_factor=2, mode=0, bias=0.):
 		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
 
+		self.bias = bias
 		self.channel = channel
 		self.gain_factor = gain_factor
 		self.mode = mode
@@ -73,7 +74,7 @@ class AbeReader(Actor):
 	def trigger(self, tick):
 		value = 0.
 		if not fake:
-			value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode))
+			value = self.up_scale( self.adcdac.read_adc_voltage(self.channel, self.mode)) - self.bias
 
 			self.monitor_value = value 
 
