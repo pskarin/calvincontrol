@@ -77,8 +77,6 @@ class AbeWriter(Actor):
 		diffs = []
 		for t in ts:
 			diffs.append(myts-t)
-		if max(diffs) > 0.1:
-			self.monitor_value_0 = diffs
 		self.monitor_value = (myts,)+ts
 
 	action_priority = (write, )

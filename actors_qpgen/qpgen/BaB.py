@@ -64,6 +64,7 @@ class BaB(Actor):
 		self.B = np.array(self.qp.getB())
 		self.H = np.array([1., 0, 0, 0, 0, 1.]).reshape(2,3)
 		self.x = np.array([0, 0, 0])
+		sys.stderr.write("MPC N: {} h: {}\n".format(self.qp.horizon(), self.h))
 
 	def did_migrate(self):
 		self.setup()
@@ -87,10 +88,10 @@ class BaB(Actor):
 		position_v, position_t, ptick = position_vt
 		angle = self.volt2angle(angle_v)
 		position = self.volt2pos(position_v)
-		
+		speed = (position-self.prevpos)/(position_t[0]-self.prevtime)
+
 		self.x, self.P = predict(self.x, self.P, self.F, self.Q) 
 		self.x, self.P = update(self.x, self.P, np.array([position, angle]), self.R, self.H, return_all=False)
-		speed = (position-self.prevpos)/(position_t[0]-self.prevtime)
 		
 		self.prevtime = position_t[0]
 		self.prevpos = position
