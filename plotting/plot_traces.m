@@ -4,7 +4,7 @@ experi_date = '20171222';
 experi_names = {'Wired_PID_inPoutP','Wired_PID_inDoutD','Wired_PID_inAoutA'};
 
 nbr_experis = length(experi_names);
-nbr_analy = 6;
+nbr_analy = 7;
 
 
 
@@ -21,12 +21,13 @@ for i = 1:nbr_experis
 
     data = read_data(experi_date, experi_names{i}, script_name, actor_methods);
 
-    plot_ctrl_sigs(nbr_analy,nbr_experis,(i-1)*nbr_analy + 1, data, type)
-    plot_cpu(nbr_analy,nbr_experis,(i-1)*nbr_analy + 2, data, type)
-    plot_queue_sizes(nbr_analy,nbr_experis,(i-1)*nbr_analy + 3, data, type)
-    plot_node(nbr_analy,nbr_experis,(i-1)*nbr_analy + 4, data, type)
-    plot_ctrl_error(nbr_analy,nbr_experis,(i-1)*nbr_analy + 5, data)
-    plot_ctrl_error_dist(nbr_analy,nbr_experis,(i-1)*nbr_analy + 6, data)
+    plot_ctrl_sigs( nbr_analy,nbr_experis,(i-1)*nbr_analy + 1, data, type)
+    plot_cpu( nbr_analy,nbr_experis,(i-1)*nbr_analy + 2, data, type)
+    plot_queue_sizes( nbr_analy,nbr_experis,(i-1)*nbr_analy + 3, data, type)
+    plot_node( nbr_analy,nbr_experis,(i-1)*nbr_analy + 4, data, type)
+    plot_ctrl_error( nbr_analy,nbr_experis,(i-1)*nbr_analy + 5, data)
+    plot_ctrl_error_dist( nbr_analy,nbr_experis,(i-1)*nbr_analy + 6, data)
+    plot_e2e( nbr_analy,nbr_experis,(i-1)*nbr_analy + 7, data)
 end
     
 function data = read_data(experi_date, experi_name, script_name, actor_methods)
