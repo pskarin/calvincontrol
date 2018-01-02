@@ -77,7 +77,7 @@ class BaB(Actor):
 		return (v/10.0)*math.pi/4
 		
 	def angular2volt(self, a):
-		return (a/4.5)*10.0
+		return a/4.5
 
 	@condition(action_input=['angle', 'position', 'ref'], action_output=['u'])
 	def action(self, angle_vt, position_vt, ref_vt):
