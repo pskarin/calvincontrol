@@ -43,48 +43,55 @@ class BaB(Actor):
 		u : Control signals
 		
 	"""
-	@manage(['ref_vt', 'prevpos', 'prevtime', 'u'])
+	@manage(['prevpos', 'prevtime', 'u', 'P', 'x'])
 	def init(self):
-		self.ref_vt = (0,(0,))
 		self.prevpos = 0
 		self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
 		self.u = 0
 		# Kalman filter matrices. Shall migrate.
 		# TODO: Get sizes from QP!!!??
 		self.P = np.eye(3)
-		self.Q = np.eye(3)*np.array([1.1, 1.1, 0.1])
-		self.R = np.eye(2)*np.array([1.1, 1.5])
+		self.x = np.array([0, 0, 0])
 		self.setup()
 
 	def setup(self):
 		self.qp = QP()
 		self.qpQ = np.array(self.qp.getQ()).reshape((self.qp.numStates(), self.qp.numStates()))
 		self.h = 1./self.qp.getSampleRate()
+		self.Q = np.eye(3)*np.array([1.1, 1.1, 1.1])
+		self.R = np.eye(2)*np.array([1.1, 1.5])
 		self.F = np.array(self.qp.getA()).reshape(3,3)
 		self.B = np.array(self.qp.getB())
 		self.H = np.array([1., 0, 0, 0, 0, 1.]).reshape(2,3)
-		self.x = np.array([0, 0, 0])
 		sys.stderr.write("MPC N: {} h: {}\n".format(self.qp.horizon(), self.h))
 
 	def did_migrate(self):
+		self.x = np.array(self.x)
+		self.P = np.array(self.P)
 		self.setup()
-		self.updateref()
-		
+
+	def will_migrate(self):
+		self.x = self.x.tolist()
+		self.P = self.P.tolist()
+
 	def volt2pos(self, v):
 		return (v/10.0)*0.55
 
 	def volt2angle(self, v):
 		return (v/10.0)*math.pi/4
-		
+
 	def angular2volt(self, a):
-		return a/4.5
+		return a/4.4
 
 	@condition(action_input=['angle', 'position', 'ref'], action_output=['u'])
 	def action(self, angle_vt, position_vt, ref_vt):
 		start_t = time.time()
 		angle_v, angle_t, atick = angle_vt
-		self.ref_vt = ref_vt[0:2]
-		self.updateref()
+
+		r = np.array((self.volt2pos(ref_vt[0]), 0, 0))
+		self.qp.setTargetStates(np.tile(np.dot(self.qpQ, r), (self.qp.horizon(),1)).reshape(
+				self.qp.numStates()*self.qp.horizon(), 1))
+
 		position_v, position_t, ptick = position_vt
 		angle = self.volt2angle(angle_v)
 		position = self.volt2pos(position_v)
@@ -92,25 +99,20 @@ class BaB(Actor):
 
 		self.x, self.P = predict(self.x, self.P, self.F, self.Q) 
 		self.x, self.P = update(self.x, self.P, np.array([position, angle]), self.R, self.H, return_all=False)
-		
+
 		self.prevtime = position_t[0]
 		self.prevpos = position
 		self.qp.setState((self.x[0], self.x[1], self.x[2]))
 		u0 = self.qp.run()
 		iterations = self.qp.getNumberOfIterations()
-		if iterations < 2000:
+		if iterations < 500:
 			self.u = self.angular2volt(u0[0])
 		else:
 			self.u = 0
 		end_t = time.time()
 		self.monitor_value = (self.u, iterations, end_t-start_t, speed)
 #		sys.stderr.write("MPC Iterations: {} time: {}\n".format(iterations, round((end_t-start_t)*1000)))
-		return ((self.u, (position_t+angle_t+self.ref_vt[1]), 0),)
-
-	def updateref(self):
-		r = np.array((self.volt2pos(self.ref_vt[0]), 0, 0))
-		self.qp.setTargetStates(np.tile(np.dot(self.qpQ, r), (self.qp.horizon(),1)).reshape(
-				self.qp.numStates()*self.qp.horizon(), 1))
+		return ((self.u, (position_t+angle_t+ref_vt[1]), 0),)
 
 	action_priority = (action,)
 
@@ -129,4 +131,3 @@ class BaB(Actor):
 			'filter': token_filter
 		},
 	]
-
