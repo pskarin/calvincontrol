@@ -6,7 +6,7 @@ act : io.AbeWriter(channel=1)
 ang : io.AbeReader(channel=1)
 pos : io.AbeReader(channel=2)
 
-dis : misc.PacedValueIterator( period=10.0, values=[-5.0])
+dis : misc.PacedValueIterator( period=10.0, values=[-7.0, 0.0, 7.0])
 
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick

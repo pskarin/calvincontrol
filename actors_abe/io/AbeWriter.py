@@ -77,7 +77,7 @@ class AbeWriter(Actor):
 		diffs = []
 		for t in ts:
 			diffs.append(myts-t)
-		self.monitor_value = (myts,)+ts
+		self.monitor_value = [myts]+list(ts)
 
 	action_priority = (write, )
 	requires = ['calvinsys.native.python-time']
