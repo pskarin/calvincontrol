@@ -19,8 +19,6 @@ AVAIL_CHA = [1,2]
 MAX_OUT = 3.299
 REFLECTION_FACTOR = MAX_OUT/2.
 SCALE_FACTOR = 10.
-NEG_COMP = 0 #-0.04
-POS_COMP = 0 #1.1
 
 class AbeWriter(Actor):
 
@@ -72,10 +70,6 @@ class AbeWriter(Actor):
 	@condition(action_input=("value",))
 	def write(self, value_ts):
 		value, ts, tick = value_ts
-		if value < 0:
-			value += NEG_COMP
-		else:
-			value += POS_COMP
 		if not fake:
 			assert -10. <= value <= 10. , "The value: %f is not in the value range (-10, 10)" % value
 			self.adcdac.set_dac_voltage( self.channel, self.down_scale(value))
