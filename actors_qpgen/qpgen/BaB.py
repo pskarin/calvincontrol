@@ -63,7 +63,30 @@ class BaB(Actor):
     self.F = np.array(self.qp.getA()).reshape(3,3)
     self.B = np.array(self.qp.getB())
     self.H = np.array([1., 0, 0, 0, 0, 1.]).reshape(2,3)
-    sys.stderr.write("MPC N: {} h: {}\n".format(self.qp.horizon(), self.h))
+    _log.warning("MPC Configuration\n> A: {}\n> B: {}\n> h: {}\n> N: {}\n> Q: {}\n> R: {}\n> Cx: {}\n> XUb: {}\n> XLb: {}\n> XSoft: {}\n> Cu: {}\n> UUb: {}\n> ULb: {}\n> USoft: {}\n> MaxIterations: {}\n> Tolerance: {}".format(
+      self.qp.getA(),
+      self.qp.getB(),
+      1.0/self.qp.getSampleRate(),
+      self.qp.horizon(),
+      self.qp.getQ(),
+      self.qp.getR(),
+      self.qp.getCx(),
+      self.qp.getXUb(),
+      self.qp.getXLb(),
+      self.qp.getXSoft(),
+      self.qp.getCu(),
+      self.qp.getUUb(),
+      self.qp.getULb(),
+      self.qp.getUSoft(),
+      self.qp.maxIterations(),
+      self.qp.tolerance(),
+      ))
+    _log.warning("Kalman state\n> P: {}\n> Q: {}\n> R: {}\n> H: {}".format(
+      self.P.reshape(1,9),
+      self.Q.reshape(1,9),
+      self.R.reshape(1,4),
+      self.H.reshape(1,6),
+      ))
 
   def did_migrate(self):
     self.x = np.array(self.x)
