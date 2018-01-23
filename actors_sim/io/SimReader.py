@@ -16,11 +16,12 @@ class SimReader(Actor):
 	"""
 
 	@manage(['device', 'value', 'scale', 'noise'])
-	def init(self, device, scale, noise=0.):
+	def init(self, device, scale, noise=0., mean=0.):
 		self.device = device
 		self.value = 0
 		self.scale = scale
 		self.noise = noise
+		self.mean = mean
 		self.setup()
 
 	def setup(self):
@@ -39,7 +40,7 @@ class SimReader(Actor):
 		try:        
 			message, priority = self.inqueue.receive(0) # Get input signal
 			self.value = float(message)/self.scale*10.0
-			if self.noise > 0: self.value += np.random.normal(0, self.noise, 1)[0]
+			if self.noise > 0: self.value += np.random.normal(self.mean, self.noise, 1)[0]
 			self.value = max(-10.0, min(10.0, self.value))
 		except ipc.BusyError:
 			pass
