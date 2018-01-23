@@ -1,6 +1,6 @@
 /* Actors */
-clock : misc.Clock(period=0.05)
-mpc : qpgen.BaB()
+clock : misc.Clock(period=0.025)
+mpc : qpgen.BaB(offset=-0.1)
 
 act : io.AbeWriter(channel=1)
 ang : io.AbeReader(channel=1)
