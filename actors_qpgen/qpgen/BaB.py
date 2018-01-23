@@ -43,8 +43,9 @@ class BaB(Actor):
     u : Control signals
     
   """
-  @manage(['prevpos', 'prevtime', 'u', 'P', 'x'])
-  def init(self):
+  @manage(['prevpos', 'prevtime', 'u', 'P', 'x', 'offset'])
+  def init(self, offset=0):
+    self.offset = offset
     self.prevpos = 0
     self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
     self.u = 0
@@ -125,7 +126,7 @@ class BaB(Actor):
 
     self.prevtime = position_t[0]
     self.prevpos = position
-    self.qp.setState((self.x[0], self.x[1], self.x[2]))
+    self.qp.setState((self.x[0], self.x[1]+self.offset, self.x[2]))
     u0 = self.qp.run()
     iterations = self.qp.getNumberOfIterations()
     if iterations < 500:
@@ -133,7 +134,7 @@ class BaB(Actor):
     else:
       self.u = 0
     end_t = time.time()
-    self.monitor_value = (self.u, iterations, end_t-start_t, speed)
+    self.monitor_value = (self.u, iterations, end_t-start_t, self.x[1])
     return ((self.u, (position_t+angle_t+ref_vt[1]), 0),)
 
   action_priority = (action,)

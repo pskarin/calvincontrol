@@ -1,6 +1,6 @@
 /* Actors */
 clock : misc.Clock(period=0.05)
-mpc : qpgen.BaB()
+mpc : qpgen.BaB(offset=0.0)
 
 act : io.SimWriter(device="/bbsim_in-0")
 ang : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.2)
