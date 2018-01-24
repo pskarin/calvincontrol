@@ -117,7 +117,7 @@ class BaB(Actor):
         self.qp.numStates()*self.qp.horizon(), 1))
 
     position_v, position_t, ptick = position_vt
-    angle = self.volt2angle(angle_v)
+    angle = self.volt2angle(angle_v)+self.offset
     position = self.volt2pos(position_v)
     speed = (position-self.prevpos)/(position_t[0]-self.prevtime)
 
@@ -126,7 +126,7 @@ class BaB(Actor):
 
     self.prevtime = position_t[0]
     self.prevpos = position
-    self.qp.setState((self.x[0], self.x[1]+self.offset, self.x[2]))
+    self.qp.setState((self.x[0], self.x[1], self.x[2]))
     u0 = self.qp.run()
     iterations = self.qp.getNumberOfIterations()
     if iterations < 500:

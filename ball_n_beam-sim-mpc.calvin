@@ -1,5 +1,5 @@
 /* Actors */
-clock : misc.Clock(period=0.1)
+clock : misc.Clock(period=0.05)
 mpc : qpgen.BaB(offset=-0.1)
 
 act : io.SimWriter(device="/bbsim_in-0")

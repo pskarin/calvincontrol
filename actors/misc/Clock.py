@@ -2,6 +2,9 @@
 
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
 
+from calvin.utilities.calvinlogger import get_actor_logger
+_log = get_actor_logger(__name__)
+
 class Clock(Actor):
     """ Hej
     
@@ -10,6 +13,7 @@ class Clock(Actor):
     """
     @manage(['timer', 'period', 'started', 'tick'])
     def init(self, period):
+        _log.warning("Clock period: {}".format(period))
         self.period = period
         self.timer = calvinsys.open(self, "sys.timer.repeating")
         self.started = False
