@@ -117,7 +117,7 @@ class BaB(Actor):
         self.qp.numStates()*self.qp.horizon(), 1))
 
     position_v, position_t, ptick = position_vt
-    angle = self.volt2angle(angle_v)
+    angle = self.volt2angle(angle_v)+self.offset
     position = self.volt2pos(position_v)
     speed = (position-self.prevpos)/(position_t[0]-self.prevtime)
 
@@ -126,7 +126,7 @@ class BaB(Actor):
 
     self.prevtime = position_t[0]
     self.prevpos = position
-    self.qp.setState((self.x[0], self.x[1]+self.offset, self.x[2]))
+    self.qp.setState((self.x[0], self.x[1], self.x[2]))
     u0 = self.qp.run()
     iterations = self.qp.getNumberOfIterations()
     if iterations < 500:
@@ -134,7 +134,7 @@ class BaB(Actor):
     else:
       self.u = 0
     end_t = time.time()
-    sys.stderr.write("STATE: {:0.2f} {:0.2f} {:0.2f}\n".format(self.x[0], self.x[1], self.x[2]))
+#    sys.stderr.write("STATE: {:0.2f} {:0.2f} {:0.2f}\n".format(self.x[0], self.x[1], self.x[2]))
     self.monitor_value = (self.u, iterations, end_t-start_t, self.x[1])
 #    sys.stderr.write("MPC Iterations: {} time: {}\n".format(iterations, round((end_t-start_t)*1000)))
     return ((self.u, (position_t+angle_t+ref_vt[1]), 0),)
