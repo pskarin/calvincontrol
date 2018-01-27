@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from calvin.utilities.calvinlogger import get_actor_logger
-from calvin.actor.actor import Actor, manage, condition
+from calvin.actor.actor import Actor, manage, condition, stateguard
 
 import numpy as np
 from qpballnbeam import QP
@@ -26,6 +26,35 @@ from filterpy.kalman import update, predict
 
 _log = get_actor_logger(__name__)
 
+## THREADING
+# Calvin developers will not like this at all but the calvinsys alternative is just a mess anyway. Documentation
+# is lacking, what little spec there is isn't followed in the examples pointed out and since our QP object is
+# stateless we don't want it serialized nor do we want the extra effort in putting it in the Calvin install path.
+import threading
+
+class State(object):
+  (IDLE,WORKING,DONE) = (0, 1, 2)
+  
+  def __init__(self):
+    self.lock = threading.Lock()
+    self.state = State.IDLE
+
+  def get(self):
+    self.lock.acquire()
+    ret = self.state
+    self.lock.release()
+    return ret
+
+  def set(self, state):
+    self.lock.acquire()
+    self.state = state
+    self.lock.release()
+
+def optthread(bab):
+  bab.actiondata['optres'] = bab.qp.run()
+  # NOTE/TODO: This keeps the context of the exec time to include kalman etc but perhaps we should just benchmark the run method.
+  bab.actiondata['exec_end'] = time.time()
+  bab.state.set(State.DONE)
 
 class BaB(Actor):
   """
@@ -45,6 +74,7 @@ class BaB(Actor):
   """
   @manage(['prevpos', 'prevtime', 'u', 'P', 'x', 'offset'])
   def init(self, offset=0):
+    self.state = State()
     self.offset = offset
     self.prevpos = 0
     self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
@@ -107,8 +137,10 @@ class BaB(Actor):
   def angular2volt(self, a):
     return a/4.4
 
-  @condition(action_input=['angle', 'position', 'ref'], action_output=['u'])
+  @stateguard(lambda self: self.state.get() == State.IDLE)
+  @condition(action_input=['angle', 'position', 'ref'], action_output=[])
   def action(self, angle_vt, position_vt, ref_vt):
+    self.state.set(State.WORKING)
     start_t = time.time()
     angle_v, angle_t, atick = angle_vt
 
@@ -127,19 +159,29 @@ class BaB(Actor):
     self.prevtime = position_t[0]
     self.prevpos = position
     self.qp.setState((self.x[0], self.x[1], self.x[2]))
-    u0 = self.qp.run()
+    self.actiondata = {
+        'optres': [],
+        'timestamps': (position_t+angle_t+ref_vt[1]),
+        'exec_start': start_t,
+        'exec_end': 0,
+        'speed': self.x[1]
+      }
+    th = threading.Thread(name="BaB", target=optthread, args=(self,))
+    th.start()
+
+  @stateguard(lambda self: self.state.get() == State.DONE)
+  @condition(action_input=[], action_output=['u'])
+  def optdone(self):
     iterations = self.qp.getNumberOfIterations()
     if iterations < 500:
-      self.u = self.angular2volt(u0[0])
+      self.u = self.angular2volt(self.actiondata['optres'][0])
     else:
       self.u = 0
-    end_t = time.time()
-#    sys.stderr.write("STATE: {:0.2f} {:0.2f} {:0.2f}\n".format(self.x[0], self.x[1], self.x[2]))
-    self.monitor_value = (self.u, iterations, end_t-start_t, self.x[1])
-#    sys.stderr.write("MPC Iterations: {} time: {}\n".format(iterations, round((end_t-start_t)*1000)))
-    return ((self.u, (position_t+angle_t+ref_vt[1]), 0),)
+    self.monitor_value = (self.u, iterations, self.actiondata['exec_end']-self.actiondata['exec_start'], self.actiondata['speed'])
+    self.state.set(State.IDLE)
+    return ((self.u, self.actiondata['timestamps'], 0),)
 
-  action_priority = (action,)
+  action_priority = (action,optdone)
 
   def token_filter(port, token):
     if port == 'u':

@@ -1,0 +1,12 @@
+{
+  "requirements": {
+    "pos": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}],
+    "ang": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}],
+    "act": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}],
+    "mux": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}],
+    "dis": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}],
+    "mpc": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"edge-1"}]}, "type":"+"}],
+    "demux": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"edge-1"}]}, "type":"+"}],
+    "clock": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"ue-4"}]}, "type":"+"}]
+	}
+}

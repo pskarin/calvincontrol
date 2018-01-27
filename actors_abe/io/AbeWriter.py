@@ -77,6 +77,7 @@ class AbeWriter(Actor):
 		diffs = []
 		for t in ts:
 			diffs.append(myts-t)
+		sys.stderr.write("{:0.3f} {:0.3f} {:0.3f}\n".format(diffs[0], diffs[1], diffs[2]))
 #		if max(diffs) > 0.1:
 #		self.monitor_value_0 = diffs
 		self.monitor_value = [myts]+list(ts)
