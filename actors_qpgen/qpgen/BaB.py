@@ -54,7 +54,8 @@ def optthread(bab):
   bab.actiondata['optres'] = bab.qp.run()
   # NOTE/TODO: This keeps the context of the exec time to include kalman etc but perhaps we should just benchmark the run method.
   bab.actiondata['exec_end'] = time.time()
-  bab.state.set(State.DONE)
+  bab.qpstate.set(State.DONE)
+  bab.get_calvinsys().scheduler_wakeup(bab)
 
 class BaB(Actor):
   """
@@ -74,7 +75,6 @@ class BaB(Actor):
   """
   @manage(['prevpos', 'prevtime', 'u', 'P', 'x', 'offset'])
   def init(self, offset=0):
-    self.state = State()
     self.offset = offset
     self.prevpos = 0
     self.prevtime = 0 # This will cause large denominator in first evaluation (speed)
@@ -86,6 +86,7 @@ class BaB(Actor):
     self.setup()
 
   def setup(self):
+    self.qpstate = State()
     self.qp = QP()
     self.qpQ = np.array(self.qp.getQ()).reshape((self.qp.numStates(), self.qp.numStates()))
     self.h = 1./self.qp.getSampleRate()
@@ -120,11 +121,13 @@ class BaB(Actor):
       ))
 
   def did_migrate(self):
+    sys.stderr.write("DID MIGRATE\n")
     self.x = np.array(self.x)
     self.P = np.array(self.P)
     self.setup()
 
   def will_migrate(self):
+    sys.stderr.write("WILL MIGRATE {}\n".format(self.qpstate.get()))
     self.x = self.x.tolist()
     self.P = self.P.tolist()
 
@@ -137,10 +140,10 @@ class BaB(Actor):
   def angular2volt(self, a):
     return a/4.4
 
-  @stateguard(lambda self: self.state.get() == State.IDLE)
+  @stateguard(lambda self: self.qpstate.get() == State.IDLE)
   @condition(action_input=['angle', 'position', 'ref'], action_output=[])
   def action(self, angle_vt, position_vt, ref_vt):
-    self.state.set(State.WORKING)
+    self.qpstate.set(State.WORKING)
     start_t = time.time()
     angle_v, angle_t, atick = angle_vt
 
@@ -166,10 +169,11 @@ class BaB(Actor):
         'exec_end': 0,
         'speed': self.x[1]
       }
-    th = threading.Thread(name="BaB", target=optthread, args=(self,))
-    th.start()
+    self.th = threading.Thread(name="BaB", target=optthread, args=(self, ))
+    self.th.setDaemon(True)
+    self.th.start()
 
-  @stateguard(lambda self: self.state.get() == State.DONE)
+  @stateguard(lambda self: self.qpstate.get() == State.DONE)
   @condition(action_input=[], action_output=['u'])
   def optdone(self):
     iterations = self.qp.getNumberOfIterations()
@@ -178,7 +182,7 @@ class BaB(Actor):
     else:
       self.u = 0
     self.monitor_value = (self.u, iterations, self.actiondata['exec_end']-self.actiondata['exec_start'], self.actiondata['speed'])
-    self.state.set(State.IDLE)
+    self.qpstate.set(State.IDLE)
     return ((self.u, self.actiondata['timestamps'], 0),)
 
   action_priority = (action,optdone)

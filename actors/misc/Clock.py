@@ -11,16 +11,23 @@ class Clock(Actor):
     Outputs:
         tick: tick count
     """
-    @manage(['timer', 'period', 'started', 'tick'])
+    @manage(['timer', 'period', 'started', 'tick', 'prev', 'next'])
     def init(self, period):
         _log.warning("Clock period: {}".format(period))
         self.period = period
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.started = False
         self.tick = 0
+        self.prev = 0
+        self.next = 0
+        self.setup()
+  
+    def setup(self):
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
 
+    def did_migrate(self):
+        self.setup()
 
     @stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
     @condition([], ['tick'])
