@@ -6,7 +6,7 @@ act : io.AbeWriter(channel=1)
 ang : io.AbeReader(channel=1)
 pos : io.AbeReader(channel=2)
 
-dis : misc.PacedValueIterator( period=15.0, values=[0.0, 8.65])
+dis : misc.PacedValueIterator( period=15.0, values=[0.0, 8.6])
 
 mux : misc.Mux()
 demux : misc.Demux()

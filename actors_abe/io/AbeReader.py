@@ -39,7 +39,7 @@ class AbeReader(Actor):
 	  value : ADC value in volts
 	"""
 
-	@manage(['channel', 'mode', 'gain_factor', 'bias'])
+	@manage(['channel'])
 	def init(self, channel, gain_factor=2, mode=0, bias=0.):
 		assert channel in AVAIL_CHA, 'Channel %i not a valid channel. %s' % (channel, AVAIL_CHA)
 
