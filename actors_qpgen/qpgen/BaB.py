@@ -136,7 +136,7 @@ class BaB(Actor):
     end_t = time.time()
 #    sys.stderr.write("STATE: {:0.2f} {:0.2f} {:0.2f}\n".format(self.x[0], self.x[1], self.x[2]))
     self.monitor_value = (self.u, iterations, end_t-start_t, self.x[1])
-    sys.stderr.write("MPC Iterations: {} time: {}\n".format(iterations, round((end_t-start_t)*1000)))
+#    sys.stderr.write("MPC Iterations: {} time: {}\n".format(iterations, round((end_t-start_t)*1000)))
     return ((self.u, (position_t+angle_t+ref_vt[1]), 0),)
 
   action_priority = (action,)
