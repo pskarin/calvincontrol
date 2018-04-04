@@ -54,6 +54,9 @@ class SimReader(Actor):
     def start_timer(self):
         value = self.read()
         self.start()
+
+	self.monitor_value = value
+
         return (value, )
 
     @stateguard(lambda self: self.timer and self.timer.triggered)
@@ -61,7 +64,11 @@ class SimReader(Actor):
     def trigger(self):
         self.timer.ack()
 
-        return (self.read(), )
+	value = self.read()
+
+	self.monitor_value = value 
+
+        return (value, )
 
     action_priority = (start_timer, trigger)
     requires = ['calvinsys.events.timer']

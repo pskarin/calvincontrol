@@ -70,6 +70,8 @@ class PID(Actor):
 		# Update state
 		self.y_old = y
 
+		self.monitor_value = v
+
 		return (v, )
 
 	@condition(['y_ref'],[])

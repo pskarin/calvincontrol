@@ -44,6 +44,8 @@ class PacedValueIterator(Actor):
         value = self.values[self.index]
         self.index =  (self.index + 1)%len(self.values)
 
+	self.monitor_value = value
+
         return (value, )
 
     @stateguard(lambda self: self.timer and self.timer.triggered)
@@ -52,6 +54,8 @@ class PacedValueIterator(Actor):
         self.timer.ack()
         value = self.values[self.index]
         self.index =  (self.index + 1)%len(self.values)
+
+	self.monitor_value = value
 
         return (value, )
 

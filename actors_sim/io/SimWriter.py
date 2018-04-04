@@ -31,6 +31,7 @@ class SimWriter(Actor):
     def write(self, value):
         try:
           self.outqueue.send("{}".format((value/10.0)*2*math.pi))
+	  self.monitor_value = value
         except ipc.BusyError:
           print("Failed to set new input, this should not happen")
 
