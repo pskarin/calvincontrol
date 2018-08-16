@@ -9,9 +9,9 @@ pos : io.SimReader(device="/bbsim_out2-0", scale=0.55, noise=0.)
 
 dis : misc.PacedValueIterator( period=5.0, values=[0.0, 5.0])
 
-posdelay : std.Delay(path="data.txt")
-angdelay : std.Delay(path="data.txt")
-actdelay : std.Delay(path="data.txt")
+posdelay : std.Delay()
+angdelay : std.Delay()
+actdelay : std.Delay()
 
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick, posdelay.tick, angdelay.tick, actdelay.tick

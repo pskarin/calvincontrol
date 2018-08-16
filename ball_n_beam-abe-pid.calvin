@@ -7,9 +7,9 @@ act : io.AbeWriter(channel=1)
 ang : io.AbeReader(channel=1)
 pos : io.AbeReader(channel=2)
 
-posdelay : std.Delay(path="data.txt")
-angdelay : std.Delay(path="data.txt")
-actdelay : std.Delay(path="data.txt")
+posdelay : std.Delay()
+angdelay : std.Delay()
+actdelay : std.Delay()
 
 dis : misc.PacedValueIterator( period=10.0, values=[0.0, 5.0, 0.0, -5.0])
 
