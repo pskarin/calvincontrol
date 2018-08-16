@@ -7,12 +7,19 @@ act : io.AbeWriter(channel=1)
 ang : io.AbeReader(channel=1)
 pos : io.AbeReader(channel=2)
 
+posdelay : std.Delay(path="data.txt")
+angdelay : std.Delay(path="data.txt")
+actdelay : std.Delay(path="data.txt")
+
 dis : misc.PacedValueIterator( period=10.0, values=[0.0, 5.0, 0.0, -5.0])
 
 /* Connections */
-clock.tick > ang.tick, pos.tick, dis.tick
-pos.value > outer.y
-ang.value > inner.y
+clock.tick > ang.tick, pos.tick, dis.tick, posdelay.tick, angdelay.tick, actdelay.tick
+pos.value > posdelay.token
+posdelay.token > outer .y
+ang.value > angdelay.token
+angdelay.token > inner.y
 outer.v > inner.y_ref
-inner.v > act.value
+inner.v >  actdelay.token
+actdelay.token > act.value
 dis.value > outer.y_ref
