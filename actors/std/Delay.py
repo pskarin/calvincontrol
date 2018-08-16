@@ -25,12 +25,12 @@ class Delay(Actor):
         token: anything
     """
 
-    @manage(['timer', 'delay', 'started', 'path'])
-    def init(self, path):
+    @manage(['timer', 'delay', 'started'])
+    def init(self):
         self.delay = 0
         self.timer = calvinsys.open(self, "sys.timer.repeating")
         self.started = False
-        self.path = path
+        self.path = "data.txt"
         self.seq = []
         self.dl = []
         self.counter = 0
