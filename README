@@ -1,1 +1,5 @@
 Note that actors for the Ball&Beam simulation interface (category 'bab') are from https://github.com/pskarin/pyqpgen/tree/master/ballnbeam
+
+Errors remain:  File "/System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/string.py", line 481, in expandtabs
+    return s.expandtabs(tabsize)
+AttributeError: 'NoneType' object has no attribute 'expandtabs'
