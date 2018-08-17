@@ -1,0 +1,8 @@
+clock : misc.Clock(period=0.05)
+delay : std.Delay()
+out : io.Print()
+in : std.Counter()
+
+clock.tick > delay.tick
+in.integer > delay.token
+delay.token > out.token
