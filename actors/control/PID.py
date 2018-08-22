@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
-import sys
 
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
@@ -18,7 +17,7 @@ class PID(Actor):
 	'''
 
 	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_prev_t'])
-	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., period=0.05):
+	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1.):
 		self.td = td
 		self.ti = ti
 		self.tr = tr
@@ -27,7 +26,6 @@ class PID(Actor):
 		self.kd = kd 
 		self.n = n
 		self.beta = beta
-		self.period = period
 
 		self.i = 0.
 		self.d = 0.
@@ -35,33 +33,16 @@ class PID(Actor):
 		self.y_old = 0.
 
 		self.time = None
-		self.timer_started = False
-		self.tick = 0
 		self.setup()
 		self.y_prev_t = self.time.timestamp()
-
+    
 		self.yta = []
 		self.yt_refa = []
 
 	def setup(self):
 		self.use('calvinsys.native.python-time', shorthand='time')
-		self.timer = calvinsys.open(self, "sys.timer.repeating")
 		self.time = self['time']
 		self.qt = self.time.timestamp()
-	
-	@stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
-	@condition([],['tick'])
-	def start_timer(self):
-		self.timer_started = True
-		calvinsys.write(self.timer, self.period)
-		return (self.tick, )
-
-	@stateguard(lambda self: calvinsys.can_read(self.timer))
-	@condition([],['tick'])
-	def trigger(self):
-		calvinsys.read(self.timer)
-		self.tick += 1
-		return (self.tick, )
 
 	def did_migrate(self):
 		self.setup()
@@ -126,7 +107,7 @@ class PID(Actor):
 
 		self.monitor_value = v
 
-		return ((v, y_t + ref_t, self.tick), )
+		return ((v, y_t + ref_t, tick), )
 
-	action_priority = (start_timer,trigger,cal_output,)
-	requires = ['calvinsys.native.python-time','sys.timer.repeating']
+	action_priority = (cal_output,)
+	requires = ['calvinsys.native.python-time']
