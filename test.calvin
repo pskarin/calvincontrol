@@ -1,5 +1,5 @@
 clock : misc.Clock(period=0.05)
-delay : std.Delay()
+delay : std.Delay(delay_data="/tmp/delay_data.txt")
 out : io.Print()
 in : std.Counter()
 

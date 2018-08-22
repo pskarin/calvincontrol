@@ -30,11 +30,11 @@ class Delay(Actor):
     """
 
     @manage(['timer', 'delay', 'started'])
-    def init(self):
+    def init(self, delay_data="/tmp/data.txt"):
         self.delay = 0
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.started = False
-        self.path = "/tmp/data.txt"
+        self.path = delay_data
         self.seq = []
         self.dl = []
         self.counter = 0
@@ -77,7 +77,7 @@ class Delay(Actor):
     @stateguard(lambda self: calvinsys.can_read(self.timer) and not self.packetloss)
     @condition([], ['token'])
     def passthrough(self):
-        _log.debug(('Delay: passthrough')
+        _log.debug('Delay: passthrough')
         self.started = False
         calvinsys.read(self.timer)
         return (self.token, )
@@ -85,7 +85,7 @@ class Delay(Actor):
     @stateguard(lambda self: calvinsys.can_read(self.timer) and self.packetloss)
     @condition([], [])
     def droptocken(self):
-        _log.debug(('Delay: drop packet')
+        _log.debug('Delay: drop packet')
         self.started = False
         calvinsys.read(self.timer)
 
