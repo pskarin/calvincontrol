@@ -35,7 +35,7 @@ class Clock(Actor):
         calvinsys.read(self.timer)
         self.tick += 1
         t = self.time.timestamp()
-        sys.stderr.write("Tick {:0.3f}\n".format(t-self.prev))
+#        sys.stderr.write("Tick {:0.3f}\n".format(t-self.prev))
         self.prev = t
         return (self.tick, )
 

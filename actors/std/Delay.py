@@ -15,11 +15,15 @@
 # limitations under the License.
 
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
+import sys
+from calvin.utilities.calvinlogger import get_actor_logger
+_log = get_actor_logger(__name__)
 
 class Delay(Actor):
     """
     After first token, pass on token once every 'delay' seconds.
     Input :
+        tick: counter
         token: anything
     Outputs:
         token: anything
@@ -28,9 +32,9 @@ class Delay(Actor):
     @manage(['timer', 'delay', 'started'])
     def init(self):
         self.delay = 0
-        self.timer = calvinsys.open(self, "sys.timer.repeating")
+        self.timer = calvinsys.open(self, "sys.timer.once")
         self.started = False
-        self.path = "data.txt"
+        self.path = "/tmp/data.txt"
         self.seq = []
         self.dl = []
         self.counter = 0
@@ -38,45 +42,55 @@ class Delay(Actor):
         self.setup()
 
     def setup(self):
-        f = open(self.path, 'r')
-        # Read the timestamp,delay and seq number from the file
-        for line in f.readlines():
-            s = line.split("\t")[0]
-            self.seq.append(s)
-            d = line.split("\t")[1]
-            self.dl.append(d)
-
-        f.close()
+        try:
+          f = open(self.path, 'r')
+          # Read the timestamp,delay and seq number from the file
+          for line in f.readlines():
+              s = int(line.split(",")[0])
+              self.seq.append(s)
+              d = float(line.split(",")[1])/1000.0
+              self.dl.append(d)
+          _log.info("Delay sequence length: {}".format(len(self.seq)))
+          f.close()
+        except IOError as err:
+          _log.error(err)
+          pass
 
     @stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
-    @condition(['token', 'tick'], ['token']) #have a pointer point to the current seq number
+    @condition(['token', 'tick'], []) #have a pointer point to the current seq number
     def start_timer(self, token, tick):
+        self.token = token
         self.started = True
-        sq = self.seq[self.counter]
-        if sq == tick:
-            self.delay = self.dl[self.counter]/2
-            self.counter += 1
-            self.packetloss = False
-        else:
-            self.delay = 0
-            self.packetloss = True
+        self.delay = 0
+        self.packetloss = True
+        if len(self.seq) > self.counter:
+          sq = self.seq[self.counter]
+          _log.debug('Sq: {}, tick: {}'.format(sq, tick))
+          if sq == tick:
+              self.delay = self.dl[self.counter]/2
+              self.counter += 1
+              self.packetloss = False
 
+        _log.debug('Delay {}'.format(self.delay))
         calvinsys.write(self.timer, self.delay)
-        return (token, )
 
     @stateguard(lambda self: calvinsys.can_read(self.timer) and not self.packetloss)
-    @condition(['token'], ['token'])
-    def passthrough(self, token):
+    @condition([], ['token'])
+    def passthrough(self):
+        _log.debug(('Delay: passthrough')
+        self.started = False
         calvinsys.read(self.timer)
-        return (token, )
+        return (self.token, )
 
     @stateguard(lambda self: calvinsys.can_read(self.timer) and self.packetloss)
-    @condition(['token'], [])
+    @condition([], [])
     def droptocken(self):
+        _log.debug(('Delay: drop packet')
+        self.started = False
         calvinsys.read(self.timer)
 
     action_priority = (start_timer, passthrough, droptocken)
-    requires = ['sys.timer.repeating']
+    requires = ['sys.timer.once']
 
 
     # test_kwargs = {'delay': 20}
