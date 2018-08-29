@@ -19,6 +19,7 @@ import sys
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
+
 class Delay(Actor):
     """
     After first token, pass on token once every 'delay' seconds.
@@ -43,38 +44,40 @@ class Delay(Actor):
 
     def setup(self):
         try:
-          f = open(self.path, 'r')
-          # Read the timestamp,delay and seq number from the file
-          for line in f.readlines():
-              s = int(line.split(",")[0])
-              self.seq.append(s)
-              d = float(line.split(",")[1])/1000.0
-              self.dl.append(d)
-          _log.info("Delay sequence length: {}".format(len(self.seq)))
-          f.close()
+            f = open(self.path, 'r')
+            # Read the timestamp,delay and seq number from the file
+            for line in f.readlines():
+                    s = int(line.split(",")[0])
+                    self.seq.append(s)
+                    d = float(line.split(",")[1])/1000.0
+                    self.dl.append(d)
+            _log.info("Delay sequence length: {}".format(len(self.seq)))
+            f.close()
         except IOError as err:
-          _log.error(err)
-          pass
+            _log.error(err)
+            pass
 
-    @stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
-    @condition(['token', 'tick'], []) #have a pointer point to the current seq number
+    @stateguard(lambda self: (not self.started
+                              and calvinsys.can_write(self.timer)))
+    @condition(['token', 'tick'], [])
     def start_timer(self, token, tick):
         self.token = token
         self.started = True
         self.delay = 0
         self.packetloss = True
         if len(self.seq) > self.counter:
-          sq = self.seq[self.counter]
-          _log.debug('Sq: {}, tick: {}'.format(sq, tick))
-          if sq == tick:
-              self.delay = self.dl[self.counter]/2
-              self.counter += 1
-              self.packetloss = False
+            sq = self.seq[self.counter]
+            _log.debug('Sq: {}, tick: {}'.format(sq, tick))
+            if sq == tick:
+                self.delay = self.dl[self.counter]/2
+                self.counter += 1
+                self.packetloss = False
 
         _log.debug('Delay {}'.format(self.delay))
         calvinsys.write(self.timer, self.delay)
 
-    @stateguard(lambda self: calvinsys.can_read(self.timer) and not self.packetloss)
+    @stateguard(lambda self: (calvinsys.can_read(self.timer)
+                              and not self.packetloss))
     @condition([], ['token'])
     def passthrough(self):
         _log.debug('Delay: passthrough')
@@ -82,7 +85,8 @@ class Delay(Actor):
         calvinsys.read(self.timer)
         return (self.token, )
 
-    @stateguard(lambda self: calvinsys.can_read(self.timer) and self.packetloss)
+    @stateguard(lambda self: (calvinsys.can_read(self.timer)
+                              and self.packetloss))
     @condition([], [])
     def droptocken(self):
         _log.debug('Delay: drop packet')
@@ -92,13 +96,12 @@ class Delay(Actor):
     action_priority = (start_timer, passthrough, droptocken)
     requires = ['sys.timer.once']
 
-
-    # test_kwargs = {'delay': 20}
-    # test_calvinsys = {'sys.timer.repeating': {'read': ["d", "u", "m", "m", "y"],
-    #                                           'write': [20]}}
-    # test_set = [
-    #     {
-    #         'inports': {'token': ["a", "b", 1]},
-    #         'outports': {'token': ["a", "b", 1]}
-    #     }
-    # ]
+# test_kwargs = {'delay': 20}
+# test_calvinsys = {'sys.timer.repeating': {'read': ["d", "u", "m", "m", "y"],
+#                                           'write': [20]}}
+# test_set = [
+#     {
+#         'inports': {'token': ["a", "b", 1]},
+#         'outports': {'token': ["a", "b", 1]}
+#     }
+# ]
