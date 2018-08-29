@@ -17,7 +17,7 @@ class PIDClock(Actor):
 
 	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_prev_t','timer','period','started','tick'])
 	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., period=0.05):
-		_log.warning("Clock period: {}".format(period))
+		_log.warning("PID Clock period: {}".format(period))
 		self.td = td
 		self.ti = ti
 		self.tr = tr
@@ -47,21 +47,29 @@ class PIDClock(Actor):
 		self.use('calvinsys.native.python-time', shorthand='time')
 		self.time = self['time']
 		self.qt = self.time.timestamp()
-	
+                _log.warning("Set up")
+                Cont = calvinsys.can_write(self.timer)
+                if Cont == False:
+                    _log.warning("Can't write timer")
+                elif self.started == False:
+                    _log.warning("write timer")
+
 	@stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
-	@condition([],['tick'])
+	@condition([],[])
 	def start_timer(self):
+                _log.warning("Start Timer")
 		self.started = True
 		calvinsys.write(self.timer, self.period)
 		return (self.tick, )
 
 	@stateguard(lambda self: calvinsys.can_read(self.timer))
-	@condition([],['tick'])
+	@condition([], [])
 	def trigger(self):
 		_log.debug('Take values from buffer.')
 		calvinsys.read(self.timer)
 		self.tick += 1
-		return (self.tick, )
+                _log.warning("Tick: {}".format(self.tick))
+                return (self.tick, )
 
 
 	def did_migrate(self):
