@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
-import sys
-
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
-class PID(Actor):
+class PIDClock(Actor):
 	'''
 	Generic PID
 	
@@ -17,8 +15,9 @@ class PID(Actor):
 		v: Control value 
 	'''
 
-	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_prev_t'])
+	@manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n' ,'beta', 'i', 'd', 'y_old', 'y_prev_t','timer','period','started','tick'])
 	def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10., beta=1., period=0.05):
+		_log.warning("Clock period: {}".format(period))
 		self.td = td
 		self.ti = ti
 		self.tr = tr
@@ -34,8 +33,7 @@ class PID(Actor):
 
 		self.y_old = 0.
 
-		self.time = None
-		self.timer_started = False
+		self.started = False
 		self.tick = 0
 		self.setup()
 		self.y_prev_t = self.time.timestamp()
@@ -45,21 +43,22 @@ class PID(Actor):
 		self.yt_refa = []
 
 	def setup(self):
-		self.use('calvinsys.native.python-time', shorthand='time')
 		self.timer = calvinsys.open(self, "sys.timer.repeating")
+		self.use('calvinsys.native.python-time', shorthand='time')
 		self.time = self['time']
 		self.qt = self.time.timestamp()
 	
 	@stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
 	@condition([],['tick'])
 	def start_timer(self):
-		self.timer_started = True
+		self.started = True
 		calvinsys.write(self.timer, self.period)
 		return (self.tick, )
 
 	@stateguard(lambda self: calvinsys.can_read(self.timer))
 	@condition([],['tick'])
 	def trigger(self):
+		_log.debug('Take values from buffer.')
 		calvinsys.read(self.timer)
 		self.tick += 1
 		return (self.tick, )
