@@ -67,20 +67,20 @@ class Delay(Actor):
         self.packetloss = True
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
-            _log.debug('Sq: {}, tick: {}'.format(sq, tick))
+            _log.info('Sq: {}, tick: {}'.format(sq, tick))
             if sq == tick:
                 self.delay = self.dl[self.counter]/2
                 self.counter += 1
                 self.packetloss = False
 
-        _log.debug('Delay {}'.format(self.delay))
+        _log.warning('Delay: {}'.format(self.delay))
         calvinsys.write(self.timer, self.delay)
 
     @stateguard(lambda self: (calvinsys.can_read(self.timer)
                               and not self.packetloss))
     @condition([], ['token'])
     def passthrough(self):
-        _log.debug('Delay: passthrough')
+        _log.warning('Delay: passthrough')
         self.started = False
         calvinsys.read(self.timer)
         return (self.token, )
@@ -89,7 +89,7 @@ class Delay(Actor):
                               and self.packetloss))
     @condition([], [])
     def droptocken(self):
-        _log.debug('Delay: drop packet')
+        _log.warning('Delay: drop packet')
         self.started = False
         calvinsys.read(self.timer)
 
