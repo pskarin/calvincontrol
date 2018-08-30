@@ -56,6 +56,10 @@ class Delay(Actor):
         except IOError as err:
             _log.error(err)
             pass
+    
+    def new_timer():
+        timer = calvinsys.open(self, "sys.timer.once")
+        return timer
 
     @stateguard(lambda self: (not self.started
                               and calvinsys.can_write(self.timer)))
@@ -83,6 +87,7 @@ class Delay(Actor):
         _log.warning('Delay: passthrough')
         self.started = False
         calvinsys.read(self.timer)
+        self.timer = new_timer()
         return (self.token, )
 
     @stateguard(lambda self: (calvinsys.can_read(self.timer)
@@ -92,6 +97,7 @@ class Delay(Actor):
         _log.warning('Delay: drop packet')
         self.started = False
         calvinsys.read(self.timer)
+        self.timer = new_timer();
 
     action_priority = (start_timer, passthrough, droptocken)
     requires = ['sys.timer.once']
