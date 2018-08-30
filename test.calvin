@@ -1,7 +1,7 @@
 clock : misc.Clock(period=0.05)
 delay : std.Delay(delay_data="/tmp/delay_data.txt")
-out : io.Print()
 in : std.Counter()
+out : io.Print()
 
 clock.tick > delay.tick
 in.integer > delay.token

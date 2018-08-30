@@ -41,6 +41,7 @@ class Delay(Actor):
         self.counter = 0
         self.packetloss = False
         self.setup()
+        self.token = None
 
     def setup(self):
         try:
@@ -57,7 +58,7 @@ class Delay(Actor):
             _log.error(err)
             pass
     
-    def new_timer():
+    def new_timer(self):
         timer = calvinsys.open(self, "sys.timer.once")
         return timer
 
@@ -65,30 +66,31 @@ class Delay(Actor):
                               and calvinsys.can_write(self.timer)))
     @condition(['token', 'tick'], [])
     def start_timer(self, token, tick):
+        #_log.info("Start new timer")
         self.token = token
         self.started = True
         self.delay = 0
         self.packetloss = True
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
-            _log.info('Sq: {}, tick: {}'.format(sq, tick))
+           # _log.info('Sq: {}, tick: {}'.format(sq, tick))
             if sq == tick:
                 self.delay = self.dl[self.counter]/2
                 self.counter += 1
                 self.packetloss = False
 
-        _log.warning('Delay: {}'.format(self.delay))
+       # _log.warning('Delay: {}'.format(self.delay))
         calvinsys.write(self.timer, self.delay)
 
     @stateguard(lambda self: (calvinsys.can_read(self.timer)
                               and not self.packetloss))
     @condition([], ['token'])
     def passthrough(self):
-        _log.warning('Delay: passthrough')
+        #_log.warning('Delay: passthrough')
         self.started = False
+        #_log.info("Token: {}".format(self.token))
         calvinsys.read(self.timer)
-        self.timer = new_timer()
-        return (self.token, )
+        return (2, )
 
     @stateguard(lambda self: (calvinsys.can_read(self.timer)
                               and self.packetloss))
@@ -97,9 +99,8 @@ class Delay(Actor):
         _log.warning('Delay: drop packet')
         self.started = False
         calvinsys.read(self.timer)
-        self.timer = new_timer();
 
-    action_priority = (start_timer, passthrough, droptocken)
+    action_priority = (passthrough, droptocken, start_timer, )
     requires = ['sys.timer.once']
 
 # test_kwargs = {'delay': 20}

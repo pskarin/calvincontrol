@@ -87,11 +87,11 @@ class PIDClock(Actor):
 
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
-    def msg_trigger(self, yt):
+    def msg_trigger(self, y):
         ''' Save token messages received for future use '''
-        _log.debug('Save values to buffer on msg receive.')
+        _log.info('Save values to buffer on msg receive.')
         # calvinsys.read(self.y)
-        self.y, _y_t, _tick = yt
+        self.y, _y_t, _tick = y
         _log.warning("y:{}".format(self.y))
         self.msg_q.append(self.y)
         _log.warning("queue length: {}".format(len(self.msg_q)))
