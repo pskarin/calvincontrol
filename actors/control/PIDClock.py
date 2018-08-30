@@ -20,7 +20,7 @@ class PIDClock(Actor):
     '''
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
-             'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick','msg_estim_q'])
+             'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick','msg_estim_q','max_q'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
              beta=1., period=0.05, max_q=1000):
         _log.warning("PID Clock period: {}".format(period))
@@ -33,7 +33,7 @@ class PIDClock(Actor):
         self.n = n
         self.beta = beta
         self.period = period
-
+        self.max_q = max_q
         self.i = 0.
         self.d = 0.
 
@@ -45,9 +45,9 @@ class PIDClock(Actor):
         self.y_prev_t = self.time.timestamp()
 
         # Message queue (deque is thread-safe no need for a lock)
-        self.msg_q = deque([], maxlen=max_q)
+        self.msg_q = deque([], maxlen=self.max_q)
         # Estimator
-        self.msg_estim_q = deque([], maxlen=max_q)
+        self.msg_estim_q = deque([], maxlen=self.max_q)
         self.y_estim = None
 
     def setup(self):
