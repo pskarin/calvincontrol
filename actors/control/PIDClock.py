@@ -84,12 +84,13 @@ class PIDClock(Actor):
         	self.y_estim = self.y_old
         return (self.y_estim, )
 
-    @stateguard(lambda self: (calvinsys.can_read(self.y)))
+    # @stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
-    def msg_trigger(self):
+    def msg_trigger(self, yt):
         ''' Save token messages received for future use '''
         _log.debug('Save values to buffer on msg receive.')
-        calvinsys.read(self.y)
+        # calvinsys.read(self.y)
+        self.y, _y_t, _tick = yt
         _log.warning("y:{}".format(self.y))
         self.msg_q.append(self.y)
         _log.warning("queue length: {}".format(len(self.msg_q)))
@@ -147,13 +148,13 @@ class PIDClock(Actor):
 #                    discarded[xk] += 1
 #                self.log_queue_precond(xk, discarded[xk],
 #                                       xv.get_token_from_top(0).value[1])
-	@stateguard(lambda self: calvinsys.can_read(self.y_estim))
+	# @stateguard(lambda self: calvinsys.can_read(self.y_estim))
     @condition(['y_ref'], ['v'])
-    def cal_output(self, yt, yt_ref):
+    def cal_output(self, yt_ref):
         # Time management - for event based control
         y_ref, ref_t, tick = yt_ref
         # y, y_t, _tick = yt
-        calvinsys.read(self.y_estim)
+        # calvinsys.read(self.y_estim)
         _log.warning("Read y estimation")
         y = self.y_estim
         y_t = self.time.timestamp()
