@@ -14,7 +14,6 @@ class PIDClock(Actor):
     Inputs:
         y: Measured value
         y_ref: Reference point
-        token: Delayed message tick
     Outputs:
         v: Control value
     '''
@@ -80,8 +79,10 @@ class PIDClock(Actor):
         _log.warning("Tick: {}".format(self.tick))
         if len(self.msg_q) > 0:
         	self.y_estim = self.estimator_run()
+                _log.warning("Read buffer and estimate y")
         else:
         	self.y_estim = self.y_old
+                _log.warning("buffer empty")
         return (self.y_estim, )
 
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))

@@ -1,7 +1,7 @@
 /* Actors */
 clock : misc.Clock(period=0.05)
-outer : control.PIDClock(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.05)
-inner : control.PIDClock(tr=1.0, kp=1.0, beta=1.0, period=0.05)
+outer : control.PIDClock(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.5, max_q=1000)
+inner : control.PIDClock(tr=1.0, kp=1.0, beta=1.0, period=0.5, max_q=1000)
 
 act : io.SimWriter(device="/bbsim_in-0")
 ang : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
@@ -16,7 +16,7 @@ actdelay : std.Delay(delay_data="/tmp/delay_data.txt")
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick, posdelay.tick, angdelay.tick, actdelay.tick
 pos.value > posdelay.token
-posdelay.token > outer .y
+posdelay.token > outer.y
 ang.value > angdelay.token
 angdelay.token > inner.y
 outer.v > inner.y_ref
