@@ -20,7 +20,7 @@ class PIDClock(Actor):
     '''
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
-             'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick'])
+             'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick','msg_estim_q'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
              beta=1., period=0.05, max_q=1000):
         _log.warning("PID Clock period: {}".format(period))
@@ -46,7 +46,6 @@ class PIDClock(Actor):
 
         # Message queue (deque is thread-safe no need for a lock)
         self.msg_q = deque([], maxlen=max_q)
-
         # Estimator
         self.msg_estim_q = deque([], maxlen=max_q)
         self.y_estim = None
@@ -79,20 +78,23 @@ class PIDClock(Actor):
         calvinsys.read(self.timer)
         self.tick += 1
         _log.warning("Tick: {}".format(self.tick))
-        return (self.tick, )
+        if len(self.msg_q) > 0:
+        	self.y_estim = self.estimator_run()
+        else:
+        	self.y_estim = self.y_old
+        return (self.y_estim, )
 
-    @stateguard(lambda self: (calvinsys.can_read(self.y)
-                              and calvinsys.can_read(self.token)))
-    @condition(['token', 'y'], ['y_estim'])
+    @stateguard(lambda self: (calvinsys.can_read(self.y)))
+    @condition(['y'], [])
     def msg_trigger(self):
         ''' Save token messages received for future use '''
         _log.debug('Save values to buffer on msg receive.')
-        calvinsys.read(self.token)
         calvinsys.read(self.y)
-        _log.warning("Token: {}, y:{}".format(self.token, self.y))
+        _log.warning("y:{}".format(self.y))
         self.msg_q.append(self.y)
-        self.y_estim = self.estimator_run()
-        return (self.y_estim, )
+        _log.warning("queue length: {}".format(len(self.msg_q)))
+        # self.y_estim = self.estimator_run()
+        return (self.msg_q, )
 
     def estimator_run(self):
         ''' Estimate the next tick values using the saved received ones '''
@@ -145,14 +147,18 @@ class PIDClock(Actor):
 #                    discarded[xk] += 1
 #                self.log_queue_precond(xk, discarded[xk],
 #                                       xv.get_token_from_top(0).value[1])
-
-    @condition(['tick', 'y_estim', 'y_ref'], ['v'])
+	@stateguard(lambda self: calvinsys.can_read(self.y_estim))
+    @condition(['y_ref'], ['v'])
     def cal_output(self, yt, yt_ref):
         # Time management - for event based control
         y_ref, ref_t, tick = yt_ref
-        y, y_t, _tick = yt
-        dt = y_t[0] - self.y_prev_t
-        self.y_prev_t = y_t[0]
+        # y, y_t, _tick = yt
+        calvinsys.read(self.y_estim)
+        _log.warning("Read y estimation")
+        y = self.y_estim
+        y_t = self.time.timestamp()
+        dt = y_t - self.y_prev_t
+        self.y_prev_t = y_t
 
         #
         ad = self.td / (self.td + self.n * dt)
@@ -174,6 +180,8 @@ class PIDClock(Actor):
         self.y_old = y
 
         self.monitor_value = v
+
+        _log.warning("control output calculated")
 
         return ((v, y_t + ref_t, self.tick), )
 
