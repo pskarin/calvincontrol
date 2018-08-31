@@ -50,7 +50,7 @@ class Delay(Actor):
             for line in f.readlines():
                     s = int(line.split(",")[0])
                     self.seq.append(s)
-                    d = float(line.split(",")[1])/1000.0
+                    d = 100*float(line.split(",")[1])/1000.0
                     self.dl.append(d)
             _log.info("Delay sequence length: {}".format(len(self.seq)))
             f.close()
@@ -86,11 +86,11 @@ class Delay(Actor):
                               and not self.packetloss))
     @condition([], ['token'])
     def passthrough(self):
-        #_log.warning('Delay: passthrough')
+        _log.warning('Delay: passthrough')
         self.started = False
-        #_log.info("Token: {}".format(self.token))
+        _log.info("Token: {}".format(self.token))
         calvinsys.read(self.timer)
-        return (2, )
+        return (self.token, )
 
     @stateguard(lambda self: (calvinsys.can_read(self.timer)
                               and self.packetloss))
