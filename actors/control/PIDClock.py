@@ -82,8 +82,8 @@ class PIDClock(Actor):
                 _log.warning("Read buffer and estimate y")
         else:
         	self.y_estim = self.y_old
-                _log.warning("buffer empty")
-        return (self.y_estim, )
+                _log.warning("buffer empty, use old estimate")
+        return
 
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
@@ -95,21 +95,30 @@ class PIDClock(Actor):
         _log.warning("y:{}".format(self.y))
         self.msg_q.append(self.y)
         _log.warning("queue length: {}".format(len(self.msg_q)))
-        # self.y_estim = self.estimator_run()
-        return (self.msg_q, )
+        return
 
-    def estimator_run(self):
+    def estimator_run(self, mode = 'average'):
         ''' Estimate the next tick values using the saved received ones '''
         # Move content of msg_q to estim_q
         self.msg_estim_q.extend(self.msg_q)
         self.msg_q.clear()
 
-        # Use numpy and do curve fitting of the values stored
-        est_weights = np.polyfit(x=range(0, len(self.msg_estim_q)),
-                                 y=self.msg_estim_q,
-                                 deg=1)
-        est_fct = np.poly1d(est_weights)
-        estimated = est_fct(self.tick + 1)
+        _log.warning("Estimate using {}, queue length: {}".format(
+                     mode, len(self.msg_estim_q)))
+        if mode == 'extrapolate':
+            # Use numpy and do curve fitting of the values stored
+            est_weights = np.polyfit(x=range(0, len(self.msg_estim_q)),
+                                     y=self.msg_estim_q,
+                                     deg=1)
+            est_fct = np.poly1d(est_weights)
+            estimated = est_fct(self.tick + 1)
+        elif mode == 'average':
+            estimated = sum(self.msg_estim_q) / len(self.msg_estim_q)
+        else:  # use last received value
+            estimated = self.msg_estim_q[-1]
+
+        self.msg_estim_q.clear()  # Clear the queue now that we used it
+        _log.warning("Estimated y is: {} ({})".format(estimated, mode))
         return estimated
 
     def did_migrate(self):
