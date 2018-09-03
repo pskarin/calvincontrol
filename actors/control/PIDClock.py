@@ -55,11 +55,11 @@ class PIDClock(Actor):
         self.time = self['time']
         self.qt = self.time.timestamp()
         _log.warning("Set up")
-        Cont = calvinsys.can_write(self.timer)
-        if not Cont:
-            _log.warning("Can't write timer")
-        elif not self.started:
-            _log.warning("write timer")
+        #Cont = calvinsys.can_write(self.timer)
+        #if not Cont:
+         #   _log.warning("Can't write timer")
+        #elif not self.started:
+         #   _log.warning("write timer")
 
     @stateguard(lambda self: (not self.started
                               and calvinsys.can_write(self.timer)))
@@ -85,12 +85,12 @@ class PIDClock(Actor):
                 _log.warning("buffer empty, use old estimate")
         return
 
-    # @stateguard(lambda self: (calvinsys.can_read(self.y)))
+    #@stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
     def msg_trigger(self, y):
         ''' Save token messages received for future use '''
         _log.info('Save values to buffer on msg receive.')
-        # calvinsys.read(self.y)
+       # calvinsys.read(self.y)
         self.y, _y_t, _tick = y
         _log.warning("y:{}".format(self.y))
         self.msg_q.append(self.y)
