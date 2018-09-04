@@ -3,6 +3,8 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
 import numpy as np
 import sys
+from calvin.utilities.calvinlogger import get_actor_logger
+_log = get_actor_logger(__name__)
 
 class SimReader(Actor):
 
@@ -17,12 +19,14 @@ class SimReader(Actor):
 
 	@manage(['device', 'value', 'scale', 'noise'])
 	def init(self, device, scale, noise=0., mean=0.):
-		self.device = device
+                _log.warning("SimReader; Setting up")
+                self.device = device
 		self.value = 0
 		self.scale = scale
 		self.noise = noise
 		self.mean = mean
 		self.setup()
+                _log.warning("SimReader; Finished")
 
 	def setup(self):
 		self.inqueue = ipc.MessageQueue(self.device, flags=ipc.O_CREAT, max_messages=1)

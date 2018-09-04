@@ -61,9 +61,9 @@ class PIDClock(Actor):
         _log.warning("Set up")
         Cont = calvinsys.can_write(self.timer)
         if not Cont:
-            _log.warning("Can't write timer")
+            _log.warning("  Can't write timer")
         elif not self.started:
-            _log.warning("write timer")
+            _log.warning("  write timer")
 
     @stateguard(lambda self: (not self.started
                               and calvinsys.can_write(self.timer)))

@@ -3,6 +3,8 @@ from calvin.actor.actor import Actor, manage, condition
 import posix_ipc as ipc
 import math
 import sys
+from calvin.utilities.calvinlogger import get_actor_logger
+_log = get_actor_logger(__name__)
 
 class SimWriter(Actor):
 
@@ -15,8 +17,10 @@ class SimWriter(Actor):
 
     @manage(['device',])
     def init(self, device):
+        _log.warning("SimWriter; Setting up")
         self.device = device
         self.setup()
+        _log.warning("SimWriter; Finished")
 
     def setup(self):
       self.outqueue = ipc.MessageQueue(self.device, flags=ipc.O_CREAT, max_messages=1)
