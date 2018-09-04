@@ -20,9 +20,9 @@ class PIDClock(Actor):
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick',
-             'msg_estim_q','max_q', 'name'])
+             'msg_estim_q','max_q', 'y_estim', 'y_ref', 'name'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
-             beta=1., period=0.05, max_q=1000):
+             beta=1., period=0.05, max_q=1000, name="Name"):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
@@ -49,7 +49,9 @@ class PIDClock(Actor):
         self.msg_q = deque([], maxlen=self.max_q)
         # Estimator
         self.msg_estim_q = deque([], maxlen=self.max_q)
-        self.y_estim = None
+
+        self.y_estim = 0
+        self.y_ref = (0, self.y_prev_t, self.tick)
 
     def setup(self):
         self.timer = calvinsys.open(self, "sys.timer.repeating")
@@ -75,55 +77,53 @@ class PIDClock(Actor):
     @stateguard(lambda self: calvinsys.can_read(self.timer))
     @condition([], ['v'])
     def timer_trigger(self):
-        _log.warning("="*10 + " " + self.name)
+        _log.warning(self.name + "; Tick: {}".format(self.tick))
         _log.debug('Take values from buffer on timer trigger.')
         calvinsys.read(self.timer)
         self.tick += 1
-        _log.warning("Tick: {}".format(self.tick))
-
-        # Save the current timestamp and the corresponding tick in a tuple
-        timebuffer.append((self.time.timestamp(), self.tick))
 
         if len(self.msg_q) > 0:
-        	self.y_estim = self.estimator_run()
-                _log.warning("Read buffer and estimate y")
+            _log.warning("  Read buffer and estimate y")
+            self.y_estim = self.estimator_run()
         else:
-        	self.y_estim = self.y_old
-                _log.warning("buffer empty, use old estimate")
+            _log.warning("  buffer empty, use old estimate")
+            self.y_estim = self.y_old
 
-        ## CALC CONTROL OUTPUT calc_output(x, y)
-        return ((0, 0, 0), )
+        v = self.calc_output()
+        _log.warning(self.name + "; calculation complete, returning")
+        return (v, )
 
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
     def msg_trigger(self, y):
         ''' Save token messages received for future use '''
-        _log.info('Save values to buffer on msg receive.')
-        # calvinsys.read(self.y)
-        _log.warning("y:{}".format(y[0]))
+        _log.info(self.name + "; buffering measurements: {}".format(y))
         self.msg_q.append(y) # Save entire input for timestamps
-        _log.warning("queue length: {}".format(len(self.msg_q)))
+        return
+
+    @condition(['y_ref'], [])
+    def ref_trigger(self, y_ref):
+        _log.warning(self.name + "; updating reference: {}".format(y_ref))
+        self.y_ref = y_ref
         return
 
     # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
     # along with the next value
-    def estimate_delay(self):
-        for k in range(len(self.msg_estim_q)):
-            # (true delay, tick)
-            arrival_tuple = self.msg_estim_q[k][3]
+    #def estimate_delay(self):
+    #    for k in range(len(self.msg_estim_q)):
+    #        # (true delay, tick)
+    #        arrival_tuple = self.msg_estim_q[k][3]
 
+    def estimator_run(self, mode='average'):
 
-
-
-    def estimator_run(self, mode = 'average'):
         ''' Estimate the next tick values using the saved received ones '''
         # Move content of msg_q to estim_q
         self.msg_estim_q.extend(self.msg_q)
         self.msg_q.clear()
+        
+        #h = estimate_delay()
 
-        h = estimate_delay()
-
-        _log.warning("Estimate using {}, queue length: {}".format(
+        _log.warning("  Estimate using {}, queue length: {}".format(
                      mode, len(self.msg_estim_q)))
         if mode == 'extrapolate':
             # Use numpy and do curve fitting of the values stored
@@ -133,12 +133,12 @@ class PIDClock(Actor):
             est_fct = np.poly1d(est_weights)
             estimated = est_fct(self.tick + 1)
         elif mode == 'average':
-            estimated = sum(self.msg_estim_q) / len(self.msg_estim_q)
+            estimated = sum([msg[0] for msg in self.msg_estim_q]) / len(self.msg_estim_q)
         else:  # use last received value
             estimated = self.msg_estim_q[-1]
 
         self.msg_estim_q.clear()  # Clear the queue now that we used it
-        _log.warning("Estimated y is: {} ({})".format(estimated, mode))
+        _log.warning("  Estimated y is: {} ({})".format(estimated, mode))
         return estimated
 
     def did_migrate(self):
@@ -180,12 +180,9 @@ class PIDClock(Actor):
 #                                       xv.get_token_from_top(0).value[1])
 	# @stateguard(lambda self: calvinsys.can_read(self.y_estim))
     #@condition(['y_ref'], ['v'])
-    def cal_output(self, yt_ref):
-        # Time management - for event based control
-        y_ref, ref_t, tick = yt_ref
-        # y, y_t, _tick = yt
-        # calvinsys.read(self.y_estim)
-        _log.warning("Read y estimation")
+    def calc_output(self):
+        y_ref, ref_t, tick = self.y_ref
+        _log.warning("  Read y estimation")
         y = self.y_estim
         y_t = self.time.timestamp()
         dt = y_t - self.y_prev_t
@@ -202,19 +199,19 @@ class PIDClock(Actor):
         self.d = ad * self.d - bd * (y - self.y_old)
 
         # Control signal
-        v = self.kp * (self.beta * y_ref - y) + self.i + self.d
+        u = self.kp * (self.beta * y_ref - y) + self.i + self.d
 
         # I
-        self.i += (self.ki * dt / self.ti) * e * (dt / self.tr) * (y - v)
+        self.i += (self.ki * dt / self.ti) * e * (dt / self.tr) * (y - u)
 
         # Update state
         self.y_old = y
 
-        self.monitor_value = v
+        self.monitor_value = u
 
-        _log.warning("control output calculated")
+        _log.warning("  control output calculated")
         _log.info(y_t, ref_t)
-        return ((v, y_t + ref_t, self.tick), )
+        return (u, y_t, self.tick)
 
-    action_priority = (start_timer, timer_trigger, msg_trigger, cal_output)
+    action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']

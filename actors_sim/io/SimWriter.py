@@ -30,8 +30,10 @@ class SimWriter(Actor):
     def did_migrate(self):
         self.setup()
 
-    @condition(action_input=("value",))
+    #@condition(action_input=("value",))
+    @condition(["value"],[])
     def write(self, value_ts):
+        _log.warning("Triggering write")
         value, ts, tick = value_ts
         try:
           self.outqueue.send("{}".format((value/10.0)*2*math.pi))
