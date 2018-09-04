@@ -20,9 +20,9 @@ class PIDClock(Actor):
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick',
-             'msg_estim_q','max_q','D','alpha'])
+             'msg_estim_q','max_q', 'name'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
-             beta=1., period=0.05, max_q=1000, alpha=0.2):
+             beta=1., period=0.05, max_q=1000):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
@@ -36,11 +36,9 @@ class PIDClock(Actor):
         self.max_q = max_q
         self.i = 0.
         self.d = 0.
+        self.name = name
 
         self.y_old = 0.
-
-        self.D = 0
-        self.alpha = alpha
 
         self.started = False
         self.tick = 0
@@ -77,6 +75,7 @@ class PIDClock(Actor):
     @stateguard(lambda self: calvinsys.can_read(self.timer))
     @condition([], ['v'])
     def timer_trigger(self):
+        _log.warning("="*10 + " " + self.name)
         _log.debug('Take values from buffer on timer trigger.')
         calvinsys.read(self.timer)
         self.tick += 1
@@ -85,8 +84,6 @@ class PIDClock(Actor):
         # Save the current timestamp and the corresponding tick in a tuple
         timebuffer.append((self.time.timestamp(), self.tick))
 
-
-
         if len(self.msg_q) > 0:
         	self.y_estim = self.estimator_run()
                 _log.warning("Read buffer and estimate y")
@@ -94,7 +91,7 @@ class PIDClock(Actor):
         	self.y_estim = self.y_old
                 _log.warning("buffer empty, use old estimate")
 
-        ## CALC CONTROL OUTPUT
+        ## CALC CONTROL OUTPUT calc_output(x, y)
         return ((0, 0, 0), )
 
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))
@@ -182,7 +179,7 @@ class PIDClock(Actor):
 #                self.log_queue_precond(xk, discarded[xk],
 #                                       xv.get_token_from_top(0).value[1])
 	# @stateguard(lambda self: calvinsys.can_read(self.y_estim))
-    @condition(['y_ref'], ['v'])
+    #@condition(['y_ref'], ['v'])
     def cal_output(self, yt_ref):
         # Time management - for event based control
         y_ref, ref_t, tick = yt_ref
