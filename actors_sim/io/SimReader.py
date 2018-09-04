@@ -3,6 +3,8 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
 import numpy as np
 import sys
+from calvin.utilities.calvinlogger import get_actor_logger
+_log = get_actor_logger(__name__)
 
 class SimReader(Actor):
 
@@ -50,6 +52,7 @@ class SimReader(Actor):
 	def trigger(self, tick):
 		value = self.read()
 		self.monitor_value = value
+                _log.info("Value sent out.")
 		return ((value, (self.time.timestamp(),), tick),)
 
 	action_priority = (trigger,)
