@@ -51,7 +51,7 @@ class PIDClock(Actor):
         self.msg_estim_q = deque([], maxlen=self.max_q)
 
         self.y_estim = 0
-        self.y_ref = (0, self.y_prev_t, self.tick)
+        self.y_ref = (0, (self.y_prev_t, self.tick), (0.0, 0.0))
 
     def setup(self):
         self.timer = calvinsys.open(self, "sys.timer.repeating")
@@ -104,7 +104,8 @@ class PIDClock(Actor):
     @condition(['y_ref'], [])
     def ref_trigger(self, y_ref):
         _log.warning(self.name + "; updating reference: {}".format(y_ref))
-        self.y_ref = y_ref
+        if self.y_ref[1][0] < y_ref[1][0]: # Only update when new reference is more fresh
+            self.y_ref = y_ref
         return
 
     # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
@@ -143,45 +144,10 @@ class PIDClock(Actor):
 
     def did_migrate(self):
         self.setup()
-
-#    def pre_condition_wrapper(self):
-#        """
-# 		 NOTE! The algorithm at this point assumes
-# 		 that there are only two queues!
-# 		 """
-#        isready = True
-#        keys = self.inports.keys()
-#        discarded = {}
-#        for k in keys: discarded[k] = 0
-#        for xk,xv in self.inports.iteritems():
-#            if xv.num_tokens() > 0:
-#                top = xv.get_token_from_top(0).value
-#                for yk in [k for k in keys if not k == xk]:
-#                    yv = self.inports[yk]
-#                    cont = True
-#                    while yv.num_tokens() > 1 and cont:
-#                        yt0 = yv.get_token_from_top(0).value
-#                        yt1 = yv.get_token_from_top(1).value
-#                        if abs(yt0[1]-top[1]) > abs(yt1[1]-top[1]):
-#                            yv.read()
-#                            discarded[yk] += 1
-#                        else:
-#                            cont = False
-#            else:
-#                isready = False # Some queue is empty
-#        if isready:
-#            mintokens = min([x.num_tokens() for x in self.inports.values()])
-#            for xk in keys:
-#                xv = self.inports[xk]
-#                for r in range(0, mintokens-1):
-#                    xv.read()
-#                    discarded[xk] += 1
-#                self.log_queue_precond(xk, discarded[xk],
-#                                       xv.get_token_from_top(0).value[1])
-	# @stateguard(lambda self: calvinsys.can_read(self.y_estim))
-    #@condition(['y_ref'], ['v'])
+    
     def calc_output(self):
-        y_ref, ref_t, tick = self.y_ref
+        y_ref, ref_t, _  = self.y_ref
+        _log.warning("CHECK ref_t: {}".format(ref_t))
         _log.warning("  Read y estimation")
         y = self.y_estim
         y_t = self.time.timestamp()
@@ -211,7 +177,7 @@ class PIDClock(Actor):
 
         _log.warning("  control output calculated")
         _log.info(y_t, ref_t)
-        return (u, y_t, self.tick)
+        return (u, (y_t, self.tick), ref_t)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']

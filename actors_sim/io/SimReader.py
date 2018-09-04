@@ -3,6 +3,7 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
 import numpy as np
 import sys
+#from collections import deque
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
@@ -12,19 +13,21 @@ class SimReader(Actor):
 	Reads process simulation from a message queue
 
 	Inputs:
-		tick: Clock tick
-	Outputs:
-		value: Output value
+	    tick: Clock tick
+            measured_delay: incomming delays
+        Outputs:
+	    value: Output value
 	"""
 
-	@manage(['device', 'value', 'scale', 'noise'])
-	def init(self, device, scale, noise=0., mean=0.):
+	@manage(['device', 'value', 'scale', 'noise'])#, 'del_q', 'max_q'])
+        def init(self, device, scale, noise=0., mean=0.):#, max_q=1000):
                 _log.warning("SimReader; Setting up")
                 self.device = device
 		self.value = 0
 		self.scale = scale
 		self.noise = noise
 		self.mean = mean
+                #self.del_q = deque([], maxlen=self.max_q)
 		self.setup()
                 _log.warning("SimReader; Finished")
 
@@ -50,11 +53,16 @@ class SimReader(Actor):
 			pass
 		return self.value
 
+        @condition(['measured_delay'], [])
+        def delay_buffer(self, delay):
+            _log.warning("Incomming delay: {}".format(delay))
+            return
+
 	@condition(['tick'], ['value'])
 	def trigger(self, tick):
 		value = self.read()
 		self.monitor_value = value
 		return ((value, (self.time.timestamp(),), tick),)
 
-	action_priority = (trigger,)
+	action_priority = (trigger, delay_buffer, )
 	requires = ['calvinsys.native.python-time']
