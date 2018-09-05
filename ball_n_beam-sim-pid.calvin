@@ -23,3 +23,14 @@ outer.v > inner.y_ref
 inner.v >  actdelay.token
 actdelay.token > act.value
 dis.value > outer.y_ref
+
+/* Port Properties */
+posdelay.tick[in](queue_length=10)
+posdelay.token[in](queue_length=10)
+angdelay.tick[in](queue_length=10)
+angdelay.token[in](queue_length=10)
+actdelay.tick[in](queue_length=10)
+actdelay.token[in](queue_length=10)
+ang.value[out](queue_length=10)
+pos.value[out](queue_length=10)
+act.value[in](queue_length=10)

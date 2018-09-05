@@ -52,7 +52,7 @@ class SimReader(Actor):
 	def trigger(self, tick):
 		value = self.read()
 		self.monitor_value = value
-                _log.info("Value sent out.")
+		_log.info("Value sent out.")
 		return ((value, (self.time.timestamp(),), tick),)
 
 	action_priority = (trigger,)
