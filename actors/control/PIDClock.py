@@ -54,7 +54,7 @@ class PIDClock(Actor):
         self.msg_estim_q = deque([], maxlen=self.max_q)
 
         self.y_estim = 0
-        self.y_ref = (0, (self.y_prev_t, self.tick), (0.0, 0.0))
+        self.y_ref = (0, (self.y_prev_t, self.tick, 0.0), (0.0, 0.0, 0.0))
 
     def setup(self):
         self.timer = calvinsys.open(self, "sys.timer.repeating")
@@ -196,7 +196,7 @@ class PIDClock(Actor):
 
         _log.warning("  control output calculated")
         _log.info(y_t, ref_t)
-        return (u, (y_t, self.tick), ref_t)
+        return (u, (y_t, self.tick, self.delay_est), ref_t)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']
