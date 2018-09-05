@@ -21,7 +21,7 @@ class PIDClock(Actor):
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick',
-             'msg_estim_q','max_q', 'y_estim', 'y_ref', 'name'])
+             'msg_estim_q','max_q', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
              beta=1., period=0.05, max_q=1000, name="Name"):
         _log.warning("PID Clock period: {}".format(period))
@@ -38,6 +38,8 @@ class PIDClock(Actor):
         self.i = 0.
         self.d = 0.
         self.name = name
+        self.delay_tick = 0
+        self.delay_est = 0
 
         self.y_old = 0.
 
@@ -111,9 +113,15 @@ class PIDClock(Actor):
 
     @condition(['measured_delay'], [])
     def delay_trigger(self, measured_delay):
-            _log.warning("Triggered!!!")
-            _log.warning("Incomming delay: {}".format(measured_delay))
-            return
+        if measured_delay[1] > self.delay_tick:
+            # Estimate delay using a simple EWMA filter
+            self.delay_est = 0.2*measured_delay[0] + 0.8*self.delay_est
+            self.delay_tick = measured_delay[1]
+        else:
+            _log.warning("Sent delay is behind current estimate")
+
+        _log.warning("Est delay: {}, old delay: {}".format(self.delay_est, measured_delay[0]))
+        return
 
 
     # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
@@ -123,6 +131,11 @@ class PIDClock(Actor):
     #        # (true delay, tick)
     #        arrival_tuple = self.msg_estim_q[k][3]
 
+
+    # For a kalman filter, use a second order integrator as the linear model (position and speed as the 
+    # unknown parameters that should be estimated). For an incomming tick k, estimate x_k from
+    # x_k-1 and correct with y_k. When the estimator should run, use the model, the delay
+    # estimation, the delay from the tick k  and x_k to estimate y_t. 
     def estimator_run(self, mode='average'):
 
         ''' Estimate the next tick values using the saved received ones '''
