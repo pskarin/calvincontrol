@@ -15,6 +15,6 @@ pos.value > outer.y
 ang.value > inner.y
 outer.v > inner.y_ref
 inner.v > act.value
-act.delay_inner > ang.measured_delay
-act.delay_outer > pos.measured_delay
+act.delay_outer > outer.measured_delay
+act.delay_inner > inner.measured_delay
 dis.value > outer.y_ref

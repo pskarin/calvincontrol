@@ -11,9 +11,9 @@ class SimWriter(Actor):
     """
     Writes to process simulation through a message queue
 
-    Input:
+    Inputs:
         value : Input value & time
-    Output:
+    Outputs:
         delay_inner: Output the measured delay for inner controller 
         delay_outer: Output the measured delay for outer controller
     """
@@ -22,10 +22,6 @@ class SimWriter(Actor):
     def init(self, device):
         _log.warning("SimWriter; Setting up")
         self.device = device
-        self.delay_inner = (0.0, 0.0)
-        self.delay_outer = (0.0, 0.0)
-        self.inner_trig = False
-        self.outer_trig = False
         self.setup()
         _log.warning("SimWriter; Finished")
 
@@ -41,19 +37,7 @@ class SimWriter(Actor):
     def did_migrate(self):
         self.setup()
 
-    @stateguard(lambda self: (self.inner_trig))
-    @condition([], ["delay_inner"])    
-    def send_delay_inner(self):
-        self.inner_trig = False
-        return (self.delay_inner, )
-    
-    @stateguard(lambda self: (self.outer_trig))
-    @condition([], ["delay_outer"])    
-    def send_delay_outer(self):
-        self.outer_trig = False
-        return (self.delay_outer, )
-
-    @condition(["value"], [])
+    @condition(["value"], ["delay_inner", "delay_outer"])
     def write(self, value_ts):
         _log.warning("Triggering write")
         value, t1, t2 = value_ts
@@ -69,11 +53,9 @@ class SimWriter(Actor):
         except ipc.BusyError:
             sys.stderr.write("Failed to set new input, this should not happen\n")
         finally: 
-            self.delay_inner = (time.timestamp() - t1[0], t1[1])
-            self.delay_outer = (time.timestamp() - t2[0], t2[1])
-            self.inner_trig = True
-            self.outer_trig = True
-            return
+            delay_inner = (self.time.timestamp() - t1[0], t1[1])
+            delay_outer = (self.time.timestamp() - t2[0], t2[1])
+            return (delay_inner, delay_outer, )
 
-    action_priority = (write, send_delay_inner, send_delay_outer, )
+    action_priority = (write, )
     requires = ['calvinsys.native.python-time']

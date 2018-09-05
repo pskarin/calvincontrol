@@ -14,6 +14,7 @@ class PIDClock(Actor):
     Inputs:
         y: Measured value
         y_ref: Reference point
+        measured_delay: The measured true delay
     Outputs:
         v: Control value
     '''
@@ -108,6 +109,13 @@ class PIDClock(Actor):
             self.y_ref = y_ref
         return
 
+    @condition(['measured_delay'], [])
+    def delay_trigger(self, measured_delay):
+            _log.warning("Triggered!!!")
+            _log.warning("Incomming delay: {}".format(measured_delay))
+            return
+
+
     # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
     # along with the next value
     #def estimate_delay(self):
@@ -147,8 +155,6 @@ class PIDClock(Actor):
     
     def calc_output(self):
         y_ref, ref_t, _  = self.y_ref
-        _log.warning("CHECK ref_t: {}".format(ref_t))
-        _log.warning("  Read y estimation")
         y = self.y_estim
         y_t = self.time.timestamp()
         dt = y_t - self.y_prev_t
@@ -179,5 +185,5 @@ class PIDClock(Actor):
         _log.info(y_t, ref_t)
         return (u, (y_t, self.tick), ref_t)
 
-    action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, )
+    action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']

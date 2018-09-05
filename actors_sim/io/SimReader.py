@@ -14,7 +14,6 @@ class SimReader(Actor):
 
 	Inputs:
 	    tick: Clock tick
-            measured_delay: incomming delays
         Outputs:
 	    value: Output value
 	"""
@@ -53,16 +52,12 @@ class SimReader(Actor):
 			pass
 		return self.value
 
-        @condition(['measured_delay'], [])
-        def delay_buffer(self, delay):
-            _log.warning("Incomming delay: {}".format(delay))
-            return
-
 	@condition(['tick'], ['value'])
 	def trigger(self, tick):
+                _log.warning("Triggering read")
 		value = self.read()
 		self.monitor_value = value
 		return ((value, (self.time.timestamp(),), tick),)
 
-	action_priority = (trigger, delay_buffer, )
+	action_priority = (trigger,  )
 	requires = ['calvinsys.native.python-time']
