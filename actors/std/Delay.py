@@ -30,20 +30,23 @@ class Delay(Actor):
         token: anything
     """
 
-    @manage(['timers', 'delay'])
+    @manage(['timer', 'delay'])
     def init(self, delay_data="/tmp/data.txt"):
         self.delay = 0
-        #self.timer = calvinsys.open(self, "sys.timer.once")
+        self.timer = calvinsys.open(self, "sys.timer.once")
+        self.time = self['time']
         #self.started = False
-        self.timers = []
         self.path = delay_data
         self.seq = []
         self.dl = []
         self.counter = 1
         self.packetloss = False
+        self.last_input = None
+        self.last_output = None
+        self.delay_list = []
         self.setup()
-        #self.token = None
 
+    #Read the file of delays and get the delay mesurements
     def setup(self):
         try:
             f = open(self.path, 'r')
@@ -58,23 +61,13 @@ class Delay(Actor):
         except IOError as err:
             _log.error(err)
             pass
-    
-    def new_timer(self, delay):
-        timer = calvinsys.open(self, "sys.timer.once")
-        if not calvinsys.can_write(timer):
-            _log.warning("Can not write timer")
-            _log.error(err)
-        else:
-            calvinsys.write(timer, delay)
-        _log.info("Start new timer for incoming incoming packet {} with delay {}.".format(self.counter, delay))
-        return timer
 
-    #@stateguard(lambda self: (not self.starte
+    #start the
+    #@stateguard(lambda self: (not self.started
     #                          and calvinsys.can_write(self.timer)))
     @condition(['token', 'tick'], [])
-    def start_timer(self, token, tick):
-        _log.info("Start new timer")
-        #self.token = token
+    def token_available(self, token, tick):
+        _log.info("New token arrives")
         #self.started = True
         self.delay = 0
         self.packetloss = True
@@ -85,38 +78,35 @@ class Delay(Actor):
                 self.delay = self.dl[self.counter]/2
                 self.counter += 1
                 self.packetloss = False
+                if len(self.delay_list) > 0:
+                    duration = self.last_input - self.time.timestamp()
+                    self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
+                # append the new arrives in to the list and find the one be output firstly
+                self.delay_list.append({'token': token, 'delay': self.delay})
+                self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
+                if not calvinsys.can_write(self.timer):
+                    calvinsys.read(self.timer)
+                calvinsys.write(self, self.delay_list[0]['delay'])
+        self.last_input = self.time.timestamp()
 
-        #_log.warning('Delay: {}'.format(self.delay))
-        #calvinsys.write(self.timer, self.delay)
-        self.timers.append({'token': token, 'timer': self.new_timer(self.delay)})
-        _log.info("Numer of timers: {}".format(len(self.timers)))
-
-    @stateguard(lambda self: (len(self.timers) > 0
-                              and calvinsys.can_read(self.timers[0]['timer'])
+    @stateguard(lambda self: (calvinsys.can_read(self.timer)
                               and not self.packetloss))
     @condition([], ['token'])
     def passthrough(self):
         _log.warning('Delay: passthrough')
-        #self.started = False
-        #_log.info("Token: {}".format(self.token))
-        item = self.timers.pop(0)
-        calvinsys.read(item['timer'])
-        calvinsys.close(item['timer'])
+        item = self.delay_list.pop(0)
+        calvinsys.read(self.timer)
+        if len(self.delay_list) > 0:
+            delay_list = [for ...]    ##unfinished yet, a new timer should be set
         return (item['token'], )
 
-    @stateguard(lambda self: (len(self.timers) > 0
-                              and calvinsys.can_read(self.timers[0]['timer'])
-                              and self.packetloss))
+    @stateguard(lambda self: self.packetloss)
     @condition([], [])
     def droptocken(self):
         _log.warning('Delay: drop packet')
-        #self.started = False
-        item = self.timers.pop(0)
-        calvinsys.read(item['timer'])
-        calvinsys.close(item['timer'])
         return
 
-    action_priority = (passthrough, droptocken, start_timer )
+    action_priority = (passthrough, droptocken, token_available, )
     requires = ['sys.timer.once']
 
 # test_kwargs = {'delay': 20}
