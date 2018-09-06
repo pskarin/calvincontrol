@@ -40,9 +40,9 @@ class Delay(Actor):
         self.seq = []
         self.dl = []
         self.counter = 1
-        self.packetloss = False
-        self.last_input = None
-        self.last_output = None
+        #self.packetloss = False
+        self.timer_stop = None
+        self.last_timer_stop = None
         self.delay_list = []
         self.setup()
 
@@ -68,43 +68,48 @@ class Delay(Actor):
     @condition(['token', 'tick'], [])
     def token_available(self, token, tick):
         _log.info("New token arrives")
-        #self.started = True
+        self.timer_stop = self.time.timestamp()
         self.delay = 0
-        self.packetloss = True
+        # self.packetloss = True
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
-           # _log.info('Sq: {}, tick: {}'.format(sq, tick))
+            if len(self.delay_list) > 0:
+                duration = self.timer_stop - self.last_timer_stop
+                self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
+                # decrease the delays for all tokens in the list in order set a new timer
+                # if there is no packet lost, read the delay and apppend the packet to the list
             if sq == tick:
-                self.delay = self.dl[self.counter]/2
+                self.delay = self.dl[self.counter] / 2
                 self.counter += 1
-                self.packetloss = False
-                if len(self.delay_list) > 0:
-                    duration = self.last_input - self.time.timestamp()
-                    self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
-                # append the new arrives in to the list and find the one be output firstly
-                self.delay_list.append({'token': token, 'delay': self.delay})
+                # self.packetloss = False
+                self.delay_list.append({'token': token, 'delay': self.delay, 'tick': sq})
                 self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
-                if not calvinsys.can_write(self.timer):
-                    calvinsys.read(self.timer)
-                calvinsys.write(self, self.delay_list[0]['delay'])
-        self.last_input = self.time.timestamp()
 
-    @stateguard(lambda self: (calvinsys.can_read(self.timer)
-                              and not self.packetloss))
+            #reset timer no matter the packet is dropped or not
+            if not calvinsys.can_write(self.timer):
+                calvinsys.read(self.timer)
+            calvinsys.write(self.timer, self.delay_list[0]['delay'])
+        self.last_timer_stop = self.timer_stop
+
+    @stateguard(lambda self: calvinsys.can_read(self.timer))
     @condition([], ['token'])
     def passthrough(self):
         _log.warning('Delay: passthrough')
         item = self.delay_list.pop(0)
+        _log("Send out packet at tick".format(item['tick']))
         calvinsys.read(self.timer)
+        self.timer_stop = self.time.timestamp()
         if len(self.delay_list) > 0:
-            delay_list = [for ...]    ##unfinished yet, a new timer should be set
+            duration = self.timer_stop - self.last_timer_stop
+            self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
+            calvinsys.write(self.timer, self.delay_list[0]['delay'])
         return (item['token'], )
 
-    @stateguard(lambda self: self.packetloss)
-    @condition([], [])
-    def droptocken(self):
-        _log.warning('Delay: drop packet')
-        return
+    # @stateguard(lambda self: self.packetloss)
+    # @condition([], [])
+    # def droptocken(self):
+    #     _log.warning('Delay: drop packet')
+    #     return
 
     action_priority = (passthrough, droptocken, token_available, )
     requires = ['sys.timer.once']
