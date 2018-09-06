@@ -111,7 +111,7 @@ class Delay(Actor):
     #     _log.warning('Delay: drop packet')
     #     return
 
-    action_priority = (passthrough, droptocken, token_available, )
+    action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']
 
 # test_kwargs = {'delay': 20}
