@@ -1,7 +1,7 @@
 /* Actors */
 clock : misc.Clock(period=0.05)
-outer : control.PIDClock(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.05, max_q=1000)
-inner : control.PIDClock(tr=1.0, kp=1.0, beta=1.0, period=0.05, max_q=1000)
+outer : control.PIDClock(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.01, max_q=1000)
+inner : control.PIDClock(tr=1.0, kp=1.0, beta=1.0, period=0.01, max_q=1000)
 
 act : io.SimWriter(device="/bbsim_in-0")
 ang : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
@@ -25,12 +25,19 @@ actdelay.token > act.value
 dis.value > outer.y_ref
 
 /* Port Properties */
-posdelay.tick[in](queue_length=10)
-posdelay.token[in](queue_length=10)
-angdelay.tick[in](queue_length=10)
-angdelay.token[in](queue_length=10)
-actdelay.tick[in](queue_length=10)
-actdelay.token[in](queue_length=10)
-ang.value[out](queue_length=10)
-pos.value[out](queue_length=10)
-act.value[in](queue_length=10)
+posdelay.tick[in](queue_length=100)
+posdelay.token[in](queue_length=100)
+angdelay.tick[in](queue_length=100)
+angdelay.token[in](queue_length=100)
+actdelay.tick[in](queue_length=100)
+actdelay.token[in](queue_length=100)
+posdelay.token[out](queue_length=100)
+angdelay.token[out](queue_length=100)
+actdelay.token[out](queue_length=100)
+ang.value[out](queue_length=100)
+pos.value[out](queue_length=100)
+act.value[in](queue_length=100)
+outer.y[in](queue_length=100)
+outer.v[out](queue_length=100)
+inner.y[in](queue_length=100)
+act.value[in](queue_length=100)
