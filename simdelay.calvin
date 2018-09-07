@@ -1,0 +1,26 @@
+/* Actors */
+clock : misc.Clock(period=0.05)
+outer : control.PIDClock(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.01, max_q=1000)
+inner : control.PIDClock(tr=1.0, kp=1.0, beta=1.0, period=0.01, max_q=1000)
+
+act : io.SimWriter(device="/bbsim_in-0")
+ang : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
+pos : io.SimReader(device="/bbsim_out2-0", scale=0.55, noise=0.)
+
+dis : misc.PacedValueIterator( period=5.0, values=[0.0, 5.0])
+
+posdelay : std.DelayToken(delay=0.05)
+angdelay : std.DelayToken(delay=0.05)
+actdelay : std.DelayToken(delay=0.05)
+
+/* Connections */
+clock.tick > ang.tick, pos.tick, dis.tick
+pos.value > posdelay.token
+posdelay.token > outer.y
+ang.value > angdelay.token
+angdelay.token > inner.y
+outer.v > inner.y_ref
+inner.v >  actdelay.token
+actdelay.token > act.value
+dis.value > outer.y_ref
+

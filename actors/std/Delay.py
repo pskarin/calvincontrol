@@ -89,6 +89,7 @@ class Delay(Actor):
             if not calvinsys.can_write(self.timer):
                 calvinsys.read(self.timer)
             calvinsys.write(self.timer, self.delay_list[0]['delay'])
+            _log.info("Write new time-out value")
         self.last_timer_stop = self.timer_stop
 
     @stateguard(lambda self: calvinsys.can_read(self.timer))
