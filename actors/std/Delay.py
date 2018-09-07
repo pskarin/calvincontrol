@@ -32,8 +32,10 @@ class Delay(Actor):
 
     @manage(['timer', 'delay'])
     def init(self, delay_data="/tmp/data.txt"):
+        _log.warning("I am Delay actor")
         self.delay = 0
         self.timer = calvinsys.open(self, "sys.timer.once")
+        self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
         #self.started = False
         self.path = delay_data
