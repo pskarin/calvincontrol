@@ -41,7 +41,7 @@ class Delay(Actor):
         self.path = delay_data
         self.seq = []
         self.dl = []
-        self.counter = 1
+        self.counter = 0
         #self.packetloss = False
         self.timer_stop = None
         self.last_timer_stop = None
@@ -69,15 +69,21 @@ class Delay(Actor):
     #                          and calvinsys.can_write(self.timer)))
     @condition(['token', 'tick'], [])
     def token_available(self, token, tick):
-        _log.info("New token arrives")
+        _log.info("New token arrives at tick: {} ".format(tick))
         self.timer_stop = self.time.timestamp()
         self.delay = 0
         # self.packetloss = True
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
+            _log.info("Available sequence no.{}".format(sq))
             if len(self.delay_list) > 0:
+                _log.info("Still holding tokens with the first delay {}".format(self.delay_list[0]['delay']))
                 duration = self.timer_stop - self.last_timer_stop
-                self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
+                #Here needs to be modified -> find the correct way for the operation with a dictionary
+                # Try with map ....
+                tmp_list = [x['delay'] - duration for x in self.delay_list]
+                self.delay_list = tmp_list
+                _log.info("The first delay is {}".format(self.delay_list[0]['delay']))
                 # decrease the delays for all tokens in the list in order set a new timer
                 # if there is no packet lost, read the delay and apppend the packet to the list
             if sq == tick:
@@ -86,12 +92,15 @@ class Delay(Actor):
                 # self.packetloss = False
                 self.delay_list.append({'token': token, 'delay': self.delay, 'tick': sq})
                 self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
+            else:
+                _log.info("Packet loss")
 
             #reset timer no matter the packet is dropped or not
             if not calvinsys.can_write(self.timer):
-                calvinsys.read(self.timer)
+                calvinsys.close(self.timer)
+                _log.info("Stop the timer before writing a new one")
             calvinsys.write(self.timer, self.delay_list[0]['delay'])
-            _log.info("Write new time-out value")
+            _log.info("Write new time-out value: {}".format(self.delay_list[0]['delay']))
         self.last_timer_stop = self.timer_stop
 
     @stateguard(lambda self: calvinsys.can_read(self.timer))
@@ -101,11 +110,14 @@ class Delay(Actor):
         item = self.delay_list.pop(0)
         _log("Send out packet at tick".format(item['tick']))
         calvinsys.read(self.timer)
+        _log.info("Time out")
         self.timer_stop = self.time.timestamp()
         if len(self.delay_list) > 0:
+            _log.info("Delay list not clean")
             duration = self.timer_stop - self.last_timer_stop
             self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
             calvinsys.write(self.timer, self.delay_list[0]['delay'])
+            _log.info("Write new delay for rest tokens")
         return (item['token'], )
 
     # @stateguard(lambda self: self.packetloss)
@@ -114,7 +126,7 @@ class Delay(Actor):
     #     _log.warning('Delay: drop packet')
     #     return
 
-    action_priority = (passthrough, token_available, )
+    action_priority = (token_available, token_available, )
     requires = ['sys.timer.once']
 
 # test_kwargs = {'delay': 20}

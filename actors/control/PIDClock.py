@@ -22,7 +22,7 @@ class PIDClock(Actor):
              'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick','msg_estim_q','max_q'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
              beta=1., period=0.05, max_q=1000):
-        _log.warning("PID Clock period: {}".format(period))
+        #_log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
         self.tr = tr
@@ -54,7 +54,7 @@ class PIDClock(Actor):
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
         self.qt = self.time.timestamp()
-        _log.warning("Set up")
+        #_log.warning("Set up")
         #Cont = calvinsys.can_write(self.timer)
         #if not Cont:
          #   _log.warning("Can't write timer")
@@ -65,7 +65,7 @@ class PIDClock(Actor):
                               and calvinsys.can_write(self.timer)))
     @condition([], [])
     def start_timer(self):
-        _log.warning("Start Timer")
+        #_log.warning("Start Timer")
         self.started = True
         calvinsys.write(self.timer, self.period)
         return (self.tick, )
