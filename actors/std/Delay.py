@@ -110,28 +110,28 @@ class Delay(Actor):
             _log.info("TokenAvailable: Timer status - Write: {}, Read: {}".format(calvinsys.can_write(self.timer),
                                                                                   calvinsys.can_read(self.timer)))
             self.delay = self.delay_list[0]['delay']
-            calvinsys.write(self.timer, self.delay)
+            #calvinsys.write(self.timer, self.delay)
             _log.info("Write new time-out value: {}".format(self.delay))
         self.last_timer_stop = self.time.timestamp()
         self.recent_tokenin = self.time.timestamp()
         if self.delay > self.UpperMargin:
             self.ToWrite = True
             self.ToRead = False
+            _log.info("Stay in tokenavailable")
         else:
             self.ToWrite = False
             self.ToRead = True
+            _log.info("Go to passthrough")
         _log.info("Time used for setting the timer: {}".format(self.time.timestamp() - self.timer_stop))
+        calvinsys.write(self.timer, self.delay)
 
-    @stateguard(lambda self: self.ToRead and not self.ToWrite)
+    @stateguard(lambda self: self.ToRead and not self.ToWrite and calvinsys.can_read(self.timer))
     @condition([], ['token'])
     def passthrough(self):
         _log.warning('Delay: passthrough')
-        item = self.delay_list.pop(0)
-        _log("Send out packet at tick".format(item['tick']))
-        while not calvinsys.can_read(self.timer):
-            _log.warning("can't read timer, wait.....")
         calvinsys.read(self.timer)
-        _log.info("Time out")
+        item = self.delay_list.pop(0)
+        _log.info("Send out packet at tick {}".format(item['tick']))
         self.timer_stop = self.time.timestamp()
         _log.info("PassThrough: Timer status - Write: {}, Read: {}".format(calvinsys.can_write(self.timer),
                                                                            calvinsys.can_read(self.timer)))
@@ -142,11 +142,11 @@ class Delay(Actor):
             duration = self.timer_stop - self.last_timer_stop
             self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
             self.delay = self.delay_list[0]['delay']
-            calvinsys.write(self.timer, self.delay_list[0]['delay'])
             _log.info("Write new delay for rest tokens")
             if self.recent_tokenin + self.LowerMargin - self.timer_stop > self.delay:
                 self.ToWrite = False
                 self.ToRead = True
+            calvinsys.write(self.timer, self.delay)
         self.last_timer_stop = self.time.timestamp()
         return (item['token'], )
 
@@ -156,7 +156,7 @@ class Delay(Actor):
     #     _log.warning('Delay: drop packet')
     #     return
 
-    action_priority = (token_available, token_available, )
+    action_priority = (token_available, passthrough, )
     requires = ['sys.timer.once']
 
 # test_kwargs = {'delay': 20}
