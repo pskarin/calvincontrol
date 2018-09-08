@@ -1,4 +1,4 @@
-clock : misc.Clock(period=0.05)
+clock : misc.Clock(period=0.1)
 delay : std.Delay(delay_data="/tmp/delay_data.txt")
 in : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
 out : misc.PrintTest()
