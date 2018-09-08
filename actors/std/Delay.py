@@ -34,7 +34,7 @@ class Delay(Actor):
     @manage(['timer', 'delay'])
     def init(self, delay_data="/tmp/data.txt"):
         _log.warning("I am Delay actor")
-        self.delay = 0
+        self.delay = 0.
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
@@ -46,7 +46,12 @@ class Delay(Actor):
         #self.packetloss = False
         self.timer_stop = None
         self.last_timer_stop = None
+        self.recent_tokenin = None
         self.delay_list = []
+        self.ToWrite = True
+        self.ToRead = False
+        self.UpperMargin = 0.0515
+        self.LowerMargin = 0.0485
         self.setup()
 
     #Read the file of delays and get the delay mesurements
@@ -66,7 +71,7 @@ class Delay(Actor):
             pass
 
     #start the
-    #@stateguard(lambda self: not calvinsys.can_read(self.timer))
+    @stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token', 'tick'], [])
     def token_available(self, token, tick):
         _log.info("New token arrives at tick: {} ".format(tick))
@@ -102,27 +107,47 @@ class Delay(Actor):
                 calvinsys.read(self.timer)
                 calvinsys.close(self.timer)
                 _log.info("Stop the timer before writing a new one")
-            _log.info("Timer status: {}".format(calvinsys.can_write(self.timer)))
-            calvinsys.write(self.timer, self.delay_list[0]['delay'])
-            _log.info("Write new time-out value: {}".format(self.delay_list[0]['delay']))
+            _log.info("TokenAvailable: Timer status - Write: {}, Read: {}".format(calvinsys.can_write(self.timer),
+                                                                                  calvinsys.can_read(self.timer)))
+            self.delay = self.delay_list[0]['delay']
+            calvinsys.write(self.timer, self.delay)
+            _log.info("Write new time-out value: {}".format(self.delay))
         self.last_timer_stop = self.time.timestamp()
+        self.recent_tokenin = self.time.timestamp()
+        if self.delay > self.UpperMargin:
+            self.ToWrite = True
+            self.ToRead = False
+        else:
+            self.ToWrite = False
+            self.ToRead = True
         _log.info("Time used for setting the timer: {}".format(self.time.timestamp() - self.timer_stop))
 
-    @stateguard(lambda self: calvinsys.can_read(self.timer))
+    @stateguard(lambda self: self.ToRead and not self.ToWrite)
     @condition([], ['token'])
     def passthrough(self):
         _log.warning('Delay: passthrough')
         item = self.delay_list.pop(0)
         _log("Send out packet at tick".format(item['tick']))
+        while not calvinsys.can_read(self.timer):
+            _log.warning("can't read timer, wait.....")
         calvinsys.read(self.timer)
         _log.info("Time out")
         self.timer_stop = self.time.timestamp()
+        _log.info("PassThrough: Timer status - Write: {}, Read: {}".format(calvinsys.can_write(self.timer),
+                                                                           calvinsys.can_read(self.timer)))
+        self.ToWrite = True
+        self.ToRead = False
         if len(self.delay_list) > 0:
             _log.info("Delay list not clean")
             duration = self.timer_stop - self.last_timer_stop
             self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
+            self.delay = self.delay_list[0]['delay']
             calvinsys.write(self.timer, self.delay_list[0]['delay'])
             _log.info("Write new delay for rest tokens")
+            if self.recent_tokenin + self.LowerMargin - self.timer_stop > self.delay:
+                self.ToWrite = False
+                self.ToRead = True
+        self.last_timer_stop = self.time.timestamp()
         return (item['token'], )
 
     # @stateguard(lambda self: self.packetloss)
