@@ -1,0 +1,6 @@
+clock : misc.Clock(period=0.05)
+in : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
+out : misc.PrintTest()
+
+clock.tick > in.tick
+in.value > out.token
