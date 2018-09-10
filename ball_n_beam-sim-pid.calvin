@@ -14,7 +14,7 @@ angdelay : std.Delay(delay_data="/tmp/delay_data.txt")
 actdelay : std.Delay(delay_data="/tmp/delay_data.txt")
 
 /* Connections */
-clock.tick > ang.tick, pos.tick, dis.tick, posdelay.tick, angdelay.tick, actdelay.tick
+clock.tick > ang.tick, pos.tick, dis.tick
 pos.value > posdelay.token
 posdelay.token > outer.y
 ang.value > angdelay.token
