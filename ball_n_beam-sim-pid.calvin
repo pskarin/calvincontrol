@@ -22,6 +22,8 @@ angdelay.token > inner.y
 outer.v > inner.y_ref
 inner.v >  actdelay.token
 actdelay.token > act.value
+act.delay_outer > outer.measured_delay /* Insert go through delay actor */
+act.delay_inner > inner.measured_delay
 dis.value > outer.y_ref
 
 /* Port Properties */
