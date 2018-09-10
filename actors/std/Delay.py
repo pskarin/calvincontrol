@@ -49,8 +49,9 @@ class Delay(Actor):
         self.delay_list = []
         self.ToWrite = True
         self.ToRead = False
-        self.UpperMargin = 0.0510
-        self.LowerMargin = 0.0490
+        self.UpperMargin = 0.051
+        self.LowerMargin = 0.049
+>>>>>>> 48ae959fd0e5e8b8e2dbaa7831e10843a3894b93
         self.setup()
 
     #Read the file of delays and get the delay mesurements
@@ -73,6 +74,7 @@ class Delay(Actor):
     @stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token'], [])
     def token_available(self, token):
+<<<<<<< HEAD
         _,clock_info,_ = token
         _,tick,_ = clock_info
         _log.info("New token arrives at tick: {} ".format(tick))
@@ -118,6 +120,7 @@ class Delay(Actor):
             #calvinsys.write(self.timer, self.delay)
             _log.info("Write new time-out value: {}".format(self.delay))
         self.last_timer_stop = self.time.timestamp()
+<<<<<<< HEAD
         #self.recent_tokenin = self.time.timestamp()
         if self.delay > self.UpperMargin:
             self.ToWrite = True
@@ -139,14 +142,11 @@ class Delay(Actor):
         item = self.delay_list.pop(0)
         _log.info("Send out packet at tick {}".format(item['tick']))
         self.timer_stop = self.time.timestamp()
-        #_log.info("PassThrough: Timer status - Write: {}, Read: {}".format(calvinsys.can_write(self.timer),
-                                                                           #calvinsys.can_read(self.timer)))
         self.ToWrite = True
         self.ToRead = False
         if len(self.delay_list) > 0:
             _log.info("Delay list not clean")
             duration = self.timer_stop - self.last_timer_stop
-            #self.delay_list['delay'] = [x - duration for x in self.delay_list['delay']]
             for x in self.delay_list:
                 x['delay'] -= duration
             self.delay = self.delay_list[0]['delay']
@@ -160,12 +160,6 @@ class Delay(Actor):
             calvinsys.write(self.timer, self.delay)
         self.last_timer_stop = self.time.timestamp()
         return (item['token'], )
-
-    # @stateguard(lambda self: self.packetloss)
-    # @condition([], [])
-    # def droptocken(self):
-    #     _log.warning('Delay: drop packet')
-    #     return
 
     action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']
