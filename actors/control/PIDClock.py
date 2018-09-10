@@ -20,8 +20,9 @@ class PIDClock(Actor):
     '''
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
-             'y_old', 'y_prev_t', 'timer', 'period', 'started', 'tick',
-             'msg_estim_q','max_q', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est'])
+             'y_old', 't_old', 't_old_meas', 'timer', 'period', 'started', 
+             'tick', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est',
+             'x', 'P'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
              beta=1., period=0.05, max_q=1000, name="Name"):
         _log.warning("PID Clock period: {}".format(period))
@@ -43,15 +44,19 @@ class PIDClock(Actor):
 
         self.y_old = 0.
 
+        self.x = np.zeros((2, 1))
+        self.P = np.eye(2)
+
         self.started = False
         self.tick = 0
         self.setup()
-        self.y_prev_t = self.time.timestamp()
+        self.t_old = self.time.timestamp()
+        self.t_old_meas = self.time.timestamp()
 
         # Message queue (deque is thread-safe no need for a lock)
-        self.msg_q = deque([], maxlen=self.max_q)
+        #self.msg_q = deque([], maxlen=self.max_q)
         # Estimator
-        self.msg_estim_q = deque([], maxlen=self.max_q)
+        #self.msg_estim_q = deque([], maxlen=self.max_q)
 
         self.y_estim = 0
         self.y_ref = (0, (self.y_prev_t, self.tick, 0.0), (0.0, 0.0, 0.0))
@@ -84,14 +89,16 @@ class PIDClock(Actor):
         _log.debug('Take values from buffer on timer trigger.')
         calvinsys.read(self.timer)
         self.tick += 1
-
+        
+        """
         if len(self.msg_q) > 0:
             _log.warning("  Read buffer and estimate y")
             self.y_estim = self.estimator_run()
         else:
             _log.warning("  buffer empty, use old estimate")
             self.y_estim = self.y_old
-
+        """
+        self.estimator_run()
         v = self.calc_output()
         _log.warning(self.name + "; calculation complete, returning")
         return (v, )
@@ -99,9 +106,36 @@ class PIDClock(Actor):
     # @stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
     def msg_trigger(self, y):
-        ''' Save token messages received for future use '''
-        _log.info(self.name + "; buffering measurements: {}".format(y))
-        self.msg_q.append(y) # Save entire input for timestamps
+        #''' Save token messages received for future use '''
+        #_log.info(self.name + "; buffering measurements: {}".format(y))
+        #self.msg_q.append(y) # Save entire input for timestamps
+
+        # Update states using the measurement
+
+        # calculate the time step, if it is negative corresponding to a previous value, 
+        # then return.
+        h = y[1] - self.t_old_meas
+        if h < 0:
+            return
+
+        sig_Q = 0.01
+        sig_R = 0.0001
+
+        A = np.array([[1, h], [0, 1]])
+        C = np.array([1, 0])
+        Q = sig_Q*np.eye(2)
+        R = sig_R*np.eye(1)
+
+        xp = A.dot(self.x)
+        Pp = A.dot(self.P).dot(A.T) + (h**2)*Q
+
+        err = y[0] - C.dot(self.x)
+        S = C.dot(Pp).dot(C.T) + R
+        K = Pp.dot(C.T).dot(inv(S))
+        self.x = xp + K.dot(err)
+        self.P = (np.eye(2) - K.dot(C)).dot(Pp).dot((np.eye(2) - K.dot(C)).T) + K.dot(R).dot(K.T)
+
+        self.t_old_meas = y[1]
         return
 
     @condition(['y_ref'], [])
@@ -138,6 +172,7 @@ class PIDClock(Actor):
     # estimation, the delay from the tick k  and x_k to estimate y_t. 
     def estimator_run(self, mode='average'):
 
+        """
         ''' Estimate the next tick values using the saved received ones '''
         # Move content of msg_q to estim_q
         self.msg_estim_q.extend(self.msg_q)
@@ -161,17 +196,23 @@ class PIDClock(Actor):
 
         self.msg_estim_q.clear()  # Clear the queue now that we used it
         _log.warning("  Estimated y is: {} ({})".format(estimated, mode))
-        return estimated
+        """
+
+        h = self.delay_est + (self.time.timestamp() - self.old_time())
+        A = np.array([[1, h], [0, 1]])
+        xp = A.dot(self.x)
+        self.y_estim = xp[0]
+        return #xp[0]
 
     def did_migrate(self):
         self.setup()
     
     def calc_output(self):
-        y_ref, ref_t, _  = self.y_ref
+        y_ref, t_ref, _  = self.y_ref
         y = self.y_estim
-        y_t = self.time.timestamp()
-        dt = y_t - self.y_prev_t
-        self.y_prev_t = y_t
+        t = self.time.timestamp()
+        dt = y_t - self.t_old
+        self.t_old = t
 
         #
         ad = self.td / (self.td + self.n * dt)
@@ -195,8 +236,8 @@ class PIDClock(Actor):
         self.monitor_value = u
 
         _log.warning("  control output calculated")
-        _log.info(y_t, ref_t)
-        return (u, (y_t, self.tick, self.delay_est), ref_t)
+        _log.info(y_t, t_ref)
+        return (u, (y_t, self.tick, self.delay_est), t_ref)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']
