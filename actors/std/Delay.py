@@ -59,7 +59,7 @@ class Delay(Actor):
             for line in f.readlines():
                     s = int(line.split(",")[0])
                     self.seq.append(s)
-                    d = 100*float(line.split(",")[1])/1000.0
+                    d = float(line.split(",")[1])/1000.0
                     self.dl.append(d)
             _log.info("Delay sequence length: {}".format(len(self.seq)))
             f.close()
