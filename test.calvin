@@ -3,6 +3,6 @@ delay : std.Delay(delay_data="/tmp/delay_data.txt")
 in : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0.)
 out : misc.PrintTest()
 
-clock.tick > delay.tick, in.tick
+clock.tick > in.tick
 in.value > delay.token
 delay.token > out.token

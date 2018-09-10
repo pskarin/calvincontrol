@@ -25,7 +25,6 @@ class Delay(Actor):
     """
     After first token, pass on token once every 'delay' seconds.
     Input :
-        tick: counter
         token: anything
     Outputs:
         token: anything
@@ -50,8 +49,8 @@ class Delay(Actor):
         self.delay_list = []
         self.ToWrite = True
         self.ToRead = False
-        self.UpperMargin = 0.0515
-        self.LowerMargin = 0.0485
+        self.UpperMargin = 0.0510
+        self.LowerMargin = 0.0490
         self.setup()
 
     #Read the file of delays and get the delay mesurements
@@ -72,10 +71,13 @@ class Delay(Actor):
 
     #start the
     @stateguard(lambda self: self.ToWrite and not self.ToRead)
-    @condition(['token', 'tick'], [])
-    def token_available(self, token, tick):
+    @condition(['token'], [])
+    def token_available(self, token):
+        _,clock_info,_ = token
+        _,tick,_ = clock_info
         _log.info("New token arrives at tick: {} ".format(tick))
         self.timer_stop = self.time.timestamp()
+        self.recent_tokenin = self.timer_stop
         self.delay = 0
         # self.packetloss = True
         if len(self.seq) > self.counter:
@@ -116,7 +118,7 @@ class Delay(Actor):
             #calvinsys.write(self.timer, self.delay)
             _log.info("Write new time-out value: {}".format(self.delay))
         self.last_timer_stop = self.time.timestamp()
-        self.recent_tokenin = self.time.timestamp()
+        #self.recent_tokenin = self.time.timestamp()
         if self.delay > self.UpperMargin:
             self.ToWrite = True
             self.ToRead = False
