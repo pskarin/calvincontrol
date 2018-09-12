@@ -33,15 +33,20 @@ class PrintTest(Actor):
     @manage(include=['stdout'])
     def init(self):
         self.stdout = calvinsys.open(self, "io.stdout")
+        self.use('calvinsys.native.python-time', shorthand='time')
+        self.time = self['time']
 
     @stateguard(lambda self: calvinsys.can_write(self.stdout))
     @condition(action_input=['token'])
     def write(self, data):
         #calvinsys.write(self.stdout, data)
-        _log.info(data)
+        _, clock_info, _ = data
+        t_prev, _, _ = clock_info
+        t_post = self.time.timestamp()
+        _log.info("Duration: {}".format(t_post-t_prev))
 
     action_priority = (write, )
-    requires = ['io.stdout']
+    requires = ['io.stdout', 'calvinsys.native.python-time']
 
 
     test_calvinsys = {'io.stdout': {'write': ["This", "is", "a", "print"]}}
