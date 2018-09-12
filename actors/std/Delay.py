@@ -30,9 +30,10 @@ class Delay(Actor):
         token: anything
     """
 
-    @manage(['timer', 'delay'])
-    def init(self, delay_data="/tmp/data.txt"):
-        _log.warning("I am Delay actor")
+    @manage(['timer', 'delay', 'name'])
+    def init(self, delay_data="/tmp/data.txt", name="DelayName"):
+        self.name = name
+        _log.warning("I am the delay actor for {}".format(self.name))
         self.delay = 0.
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.use('calvinsys.native.python-time', shorthand='time')
@@ -61,7 +62,7 @@ class Delay(Actor):
                     self.seq.append(s)
                     d = float(line.split(",")[1])/1000.0
                     self.dl.append(d)
-            _log.info("Delay sequence length: {}".format(len(self.seq)))
+            #_log.info("Delay sequence length: {}".format(len(self.seq)))
             f.close()
         except IOError as err:
             _log.error(err)
@@ -93,7 +94,7 @@ class Delay(Actor):
                 self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
                 #_log.info("my delay list: {}".format(self.delay_list))
             else:
-                _log.info("Packet loss")
+                _log.info("{}: Packet loss".format(self.name))
 
             #reset timer no matter the packet is dropped or not
             if not calvinsys.can_write(self.timer):
@@ -120,7 +121,7 @@ class Delay(Actor):
     @stateguard(lambda self: calvinsys.can_read(self.timer))
     @condition([], ['token'])
     def passthrough(self):
-        _log.warning('Delay: passthrough')
+        _log.warning('{}: passthrough'.format(self.name))
         calvinsys.read(self.timer)
         item = self.delay_list.pop(0)
         #_log.info("Send out packet at tick {}".format(item['tick']))
