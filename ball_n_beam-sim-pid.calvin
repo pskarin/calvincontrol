@@ -17,11 +17,14 @@ actdelay : std.Delay(delay_data="/tmp/delay_data.txt")
 clock.tick > ang.tick, pos.tick, dis.tick
 pos.value > posdelay.token
 posdelay.token > outer.y
+posdelay.tvalue > outer.delay
 ang.value > angdelay.token
 angdelay.token > inner.y
+angdelay.token > inner.delay
 outer.v > inner.y_ref
 inner.v >  actdelay.token
 actdelay.token > act.value
+actdelay.tvalue > act.delay
 act.delay_outer > outer.measured_delay /* Insert go through delay actor */
 act.delay_inner > inner.measured_delay
 dis.value > outer.y_ref

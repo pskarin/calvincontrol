@@ -28,6 +28,7 @@ class Delay(Actor):
         token: anything
     Outputs:
         token: anything
+        tvalue: the expected delay given by this actor
     """
 
     @manage(['timer', 'delay'])
@@ -89,7 +90,7 @@ class Delay(Actor):
             if sq == tick:
                 self.delay = self.dl[self.counter] / 2
                 self.counter += 1
-                self.delay_list.append({'token': token, 'delay': self.delay, 'tick': sq})
+                self.delay_list.append({'token': token, 'delay': self.delay, 'tdelay': self.delay})
                 self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
                 #_log.info("my delay list: {}".format(self.delay_list))
             else:
@@ -118,7 +119,7 @@ class Delay(Actor):
 
     #@stateguard(lambda self: self.ToRead and not self.ToWrite and calvinsys.can_read(self.timer))
     @stateguard(lambda self: calvinsys.can_read(self.timer))
-    @condition([], ['token'])
+    @condition([], ['token', 'tvalue'])
     def passthrough(self):
         _log.warning('Delay: passthrough')
         calvinsys.read(self.timer)
@@ -144,7 +145,7 @@ class Delay(Actor):
              #   _log.info("Wait for a new token")
             calvinsys.write(self.timer, self.delay)
         self.last_timer_stop = self.time.timestamp()
-        return (item['token'], )
+        return (item['token'], item['tdelay'] )
 
     action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']

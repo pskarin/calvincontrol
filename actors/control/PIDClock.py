@@ -15,6 +15,7 @@ class PIDClock(Actor):
         y: Measured value
         y_ref: Reference point
         measured_delay: The measured true delay
+        delay : The expected delay from the inner controller
     Outputs:
         v: Control value
     '''

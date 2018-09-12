@@ -15,6 +15,7 @@ class SimWriter(Actor):
 
     Inputs:
         value : Input value & time
+        delay : The expected delay from the inner controller
     Outputs:
         delay_inner: Output the measured delay for inner controller 
         delay_outer: Output the measured delay for outer controller
@@ -45,11 +46,15 @@ class SimWriter(Actor):
     def did_migrate(self):
         self.setup()
 
-    @condition(["value"], ["delay_inner", "delay_outer"])
-    def write(self, value_ts):
+    @condition(["value", 'delay'], ["delay_inner", "delay_outer"])
+    def write(self, value_ts, delay):
         _log.warning("Triggering write")
         value, t1, t2 = value_ts
         ts, tick, _ = t1
+        expected_delay = delay
+        actual_delay = self.time.timestamp() - ts
+        diff = expected_delay - actual_delay
+        _log.info("Actuator: The expected delay from inner controller: {}, actual delay: {} -- diff: {}".format(expected_delay, actual_delay, diff))
 
         try:
             self.outqueue.send("{}".format((value/10.0)*2*math.pi))
