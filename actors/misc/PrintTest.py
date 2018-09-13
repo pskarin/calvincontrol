@@ -44,6 +44,7 @@ class PrintTest(Actor):
         t_prev, _, _ = clock_info
         t_post = self.time.timestamp()
         _log.info("Duration: {}".format(t_post-t_prev))
+        _log.info('Token: {}'.format(data))
 
     action_priority = (write, )
     requires = ['io.stdout', 'calvinsys.native.python-time']
