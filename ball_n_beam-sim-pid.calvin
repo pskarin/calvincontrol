@@ -20,7 +20,7 @@ posdelay.token > outer.y
 posdelay.tvalue > outer.delay
 ang.value > angdelay.token
 angdelay.token > inner.y
-angdelay.token > inner.delay
+angdelay.tvalue > inner.delay
 outer.v > inner.y_ref
 inner.v >  actdelay.token
 actdelay.token > act.value
