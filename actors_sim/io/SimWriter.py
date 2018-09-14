@@ -26,7 +26,7 @@ class SimWriter(Actor):
         self.device = device
         self.log_data = log_data
         self.log_maxsize = log_maxsize 
-        self.output_filename = "/tmp/log.txt"
+        self.output_filename = "/tmp/log_writer.txt"
         self.setup()
         _log.warning("SimWriter; Finished")
 
@@ -49,9 +49,10 @@ class SimWriter(Actor):
     def write(self, value_ts):
         _log.warning("Triggering write")
         value, t1, t2 = value_ts
-        ts, tick, _ = t1
+        ts, tick, _, _, _ = t1
         _log.info("Actuator: time for passing the delay actor: {}".format(self.time.timestamp() - ts))
         try:
+            _log.warning("value: {}".format(value))
             self.outqueue.send("{}".format((value/10.0)*2*math.pi))
             myts = self.time.timestamp()
             diffs = []
@@ -74,7 +75,7 @@ class SimWriter(Actor):
            
             if self.log_data and os.stat(self.output_filename).st_size < self.log_maxsize:
                 with open(self.output_filename, 'a') as f:
-                    f.write("{},{},{},{}\n".format(t1[2], delay_inner[0], t2[2], delay_outer[0]))
+                    f.write("{},{},{},{},{},{},{},{}\n".format(t1[2], delay_inner[0], t2[2], delay_outer[0], t1[3], t1[4], t2[3], t2[4]))
 
             _log.warning("Got here")
             return (delay_inner, delay_outer, )

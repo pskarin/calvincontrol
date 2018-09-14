@@ -52,14 +52,13 @@ class PIDClock(Actor):
         self.setup()
         self.t_old = self.time.timestamp()
         self.t_old_meas = self.time.timestamp()
-
+        self.y_estim = 0
+        self.y_ref = (0, (self.t_old_meas, self.tick, 1.0), (0.0, 0.0, 0.0))
+        
         # Message queue (deque is thread-safe no need for a lock)
         #self.msg_q = deque([], maxlen=self.max_q)
         # Estimator
         #self.msg_estim_q = deque([], maxlen=self.max_q)
-
-        self.y_estim = 0
-        self.y_ref = (0, (self.y_prev_t, self.tick, 0.0), (0.0, 0.0, 0.0))
 
     def setup(self):
         self.timer = calvinsys.open(self, "sys.timer.repeating")
@@ -99,6 +98,7 @@ class PIDClock(Actor):
             self.y_estim = self.y_old
         """
         self.estimator_run()
+        _log.warning("Estimation complete")
         v = self.calc_output()
         _log.warning(self.name + "; calculation complete, returning")
         return (v, )
@@ -115,6 +115,7 @@ class PIDClock(Actor):
         # calculate the time step, if it is negative corresponding to a previous value, 
         # then return.
         h = y[1][0] - self.t_old_meas
+        _log.warning("h: {}".format(h))
         if h < 0:
             return
 
@@ -122,16 +123,16 @@ class PIDClock(Actor):
         sig_R = 0.0001
 
         A = np.array([[1, h], [0, 1]])
-        C = np.array([1, 0])
+        C = np.array([[1, 0]])
         Q = sig_Q*np.eye(2)
         R = sig_R*np.eye(1)
 
         xp = A.dot(self.x)
         Pp = A.dot(self.P).dot(A.T) + (h**2)*Q
 
-        err = y[0] - C.dot(self.x)
+        err = y[0] - C.dot(xp)
         S = C.dot(Pp).dot(C.T) + R
-        K = Pp.dot(C.T).dot(inv(S))
+        K = Pp.dot(C.T).dot(np.linalg.inv(S))
         self.x = xp + K.dot(err)
         self.P = (np.eye(2) - K.dot(C)).dot(Pp).dot((np.eye(2) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
@@ -187,7 +188,7 @@ class PIDClock(Actor):
             est_weights = np.polyfit(x=range(0, len(self.msg_estim_q)),
                                      y=self.msg_estim_q,
                                      deg=1)
-            est_fct = np.poly1d(est_weights)
+            est_fct = np.poly2d(est_weights)
             estimated = est_fct(self.tick + 1)
         elif mode == 'average':
             estimated = sum([msg[0] for msg in self.msg_estim_q]) / len(self.msg_estim_q)
@@ -201,7 +202,7 @@ class PIDClock(Actor):
         h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
         A = np.array([[1, h], [0, 1]])
         xp = A.dot(self.x)
-        self.y_estim = xp[0]
+        self.y_estim = np.asscalar(xp[0])
         return
 
     def did_migrate(self):
@@ -211,7 +212,7 @@ class PIDClock(Actor):
         y_ref, t_ref, _  = self.y_ref
         y = self.y_estim
         t = self.time.timestamp()
-        dt = y_t - self.t_old
+        dt = t - self.t_old
         self.t_old = t
 
         #
@@ -236,8 +237,8 @@ class PIDClock(Actor):
         self.monitor_value = u
 
         _log.warning("  control output calculated")
-        _log.info(y_t, t_ref)
-        return (u, (y_t, self.tick, self.delay_est), t_ref)
+        _log.info(t, t_ref)
+        return (u, (t, self.tick, self.delay_est, self.y_estim, self.t_old_meas), t_ref)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']
