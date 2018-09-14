@@ -50,7 +50,7 @@ class SimWriter(Actor):
         _log.warning("Triggering write")
         value, t1, t2 = value_ts
         ts, tick, _ = t1
-
+        _log.info("Actuator: time for passing the delay actor: {}".format(self.time.timestamp() - ts))
         try:
             self.outqueue.send("{}".format((value/10.0)*2*math.pi))
             myts = self.time.timestamp()

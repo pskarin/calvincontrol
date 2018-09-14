@@ -5,6 +5,9 @@
     "ang": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
     "pos": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
     "act": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
-    "dis": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}]
+    "dis": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
+    "posdelay": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
+    "angdelay": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}],
+    "actdelay": [{"op":"node_attr_match","kwargs":{"index":["node_name",{"name":"rt1"}]}, "type":"+"}]
   }
 }

@@ -77,7 +77,7 @@ class PIDClock(Actor):
                               and calvinsys.can_write(self.timer)))
     @condition([], [])
     def start_timer(self):
-        _log.warning("Start Timer")
+        #_log.warning("Start Timer")
         self.started = True
         calvinsys.write(self.timer, self.period)
         return
@@ -103,7 +103,7 @@ class PIDClock(Actor):
         _log.warning(self.name + "; calculation complete, returning")
         return (v, )
 
-    # @stateguard(lambda self: (calvinsys.can_read(self.y)))
+    #@stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
     def msg_trigger(self, y):
         #''' Save token messages received for future use '''
@@ -114,7 +114,7 @@ class PIDClock(Actor):
 
         # calculate the time step, if it is negative corresponding to a previous value, 
         # then return.
-        h = y[1] - self.t_old_meas
+        h = y[1][0] - self.t_old_meas
         if h < 0:
             return
 
@@ -135,7 +135,7 @@ class PIDClock(Actor):
         self.x = xp + K.dot(err)
         self.P = (np.eye(2) - K.dot(C)).dot(Pp).dot((np.eye(2) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
-        self.t_old_meas = y[1]
+        self.t_old_meas = y[1][0]
         return
 
     @condition(['y_ref'], [])
@@ -198,11 +198,11 @@ class PIDClock(Actor):
         _log.warning("  Estimated y is: {} ({})".format(estimated, mode))
         """
 
-        h = self.delay_est + (self.time.timestamp() - self.old_time())
+        h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
         A = np.array([[1, h], [0, 1]])
         xp = A.dot(self.x)
         self.y_estim = xp[0]
-        return #xp[0]
+        return
 
     def did_migrate(self):
         self.setup()

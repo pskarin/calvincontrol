@@ -3,7 +3,7 @@ from calvin.actor.actor import Actor, manage, condition, stateguard
 import posix_ipc as ipc
 import numpy as np
 import sys
-#from collections import deque
+
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
@@ -54,10 +54,10 @@ class SimReader(Actor):
 
 	@condition(['tick'], ['value'])
 	def trigger(self, tick):
-                _log.warning("Triggering read")
 		value = self.read()
 		self.monitor_value = value
-		return ((value, (self.time.timestamp(),), tick),)
+                _log.info("ADC Reader: Value sent out.")
+		return ((value, (self.time.timestamp(),tick, None,), None,),)
 
 	action_priority = (trigger,  )
 	requires = ['calvinsys.native.python-time']

@@ -23,11 +23,11 @@ class Clock(Actor):
         self.prev = 0
 
     @stateguard(lambda self: not self.started and calvinsys.can_write(self.timer))
-    @condition([], ['tick'])
+    @condition([], [])
     def start_timer(self):
         self.started = True
         calvinsys.write(self.timer, self.period)
-        return (self.tick, )
+        return 
 
     @stateguard(lambda self: calvinsys.can_read(self.timer))
     @condition([], ['tick'])
