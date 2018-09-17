@@ -27,7 +27,7 @@ class SimWriter(Actor):
         self.device = device
         self.log_data = log_data
         self.log_maxsize = log_maxsize 
-        self.output_filename = "/tmp/log_ListDelay.txt"
+        self.output_filename = "/tmp/log_NumpyDelay.txt"
         self.setup()
         _log.warning("SimWriter; Finished")
 

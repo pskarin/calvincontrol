@@ -29,6 +29,7 @@ class Delay(Actor):
         token: anything
     Outputs:
         token: anything
+        tvalue: expected delay value
     """
 
     @manage(['timer', 'delay', 'name'])
@@ -48,7 +49,8 @@ class Delay(Actor):
         self.recent_tokenin = None
         self.dt = np.dtype([('token', [('value', np.float), ('time', [('ts', np.float), ('tick', np.int), ('est_delay',
                                                                                                            np.float)]),
-                                       ('ref', [('ts_ref', np.float), ('tick_ref', np.float)])]), ('delay', np.float)])
+                                       ('ref', [('ts_ref', np.float), ('tick_ref', np.float), ('est_ref', np.float)])]),
+                            ('delay', np.float), ('tdelay', np.float)])
         self.delay_list = np.array([], dtype=self.dt)
         # self.ToWrite = True
         # self.ToRead = False
@@ -93,7 +95,7 @@ class Delay(Actor):
             if sq == tick:
                 self.delay = self.dl[self.counter] / 2
                 self.counter += 1
-                self.delay_list = np.append(self.delay_list, np.array((token, self.delay), dtype=self.dt))
+                self.delay_list = np.append(self.delay_list, np.array((token, self.delay, self.delay), dtype=self.dt))
                 self.delay_list = np.sort(self.delay_list, order='delay')
                 #_log.info("my delay list: {}".format(self.delay_list))
             else:
@@ -122,11 +124,12 @@ class Delay(Actor):
 
     #@stateguard(lambda self: self.ToRead and not self.ToWrite and calvinsys.can_read(self.timer))
     @stateguard(lambda self: calvinsys.can_read(self.timer))
-    @condition([], ['token'])
+    @condition([], ['token', 'tvalue'])
     def passthrough(self):
         _log.warning('{}: passthrough'.format(self.name))
         calvinsys.read(self.timer)
         item = self.delay_list['token'][0]
+        expect_delay = self.delay_list['tdelay'][0]
         self.delay_list = np.delete(self.delay_list, 0)
         #_log.info("Send out packet at tick {}".format(item['tick']))
         self.timer_stop = self.time.timestamp()
@@ -148,7 +151,7 @@ class Delay(Actor):
              #   _log.info("Wait for a new token")
             calvinsys.write(self.timer, self.delay)
         self.last_timer_stop = self.time.timestamp()
-        return (item, )
+        return (item, expect_delay, )
 
     action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']
