@@ -194,8 +194,8 @@ class PIDClock(Actor):
 
         self.monitor_value = u
 
-        _log.warning("  control output calculated")
-        _log.info(y_t, ref_t)
+        _log.warning("control output calculated: y_t {}, ref_t {}".format(y_t, ref_t))
+       #_log.info(y_t, ref_t)
         return (u, (y_t, self.tick, self.delay_est), ref_t)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
