@@ -17,6 +17,7 @@
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
 import sys
 import operator
+import numpy as np
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
@@ -28,12 +29,12 @@ class Delay(Actor):
         token: anything
     Outputs:
         token: anything
-        tvalue: the expected delay given by this actor
     """
 
-    @manage(['timer', 'delay'])
-    def init(self, delay_data="/tmp/data.txt"):
-        _log.warning("I am Delay actor")
+    @manage(['timer', 'delay', 'name'])
+    def init(self, delay_data="/tmp/data.txt", name="DelayName"):
+        self.name = name
+        _log.warning("I am the delay actor for {}".format(self.name))
         self.delay = 0.
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.use('calvinsys.native.python-time', shorthand='time')
@@ -45,11 +46,14 @@ class Delay(Actor):
         self.timer_stop = None
         self.last_timer_stop = None
         self.recent_tokenin = None
-        self.delay_list = []
-        self.ToWrite = True
-        self.ToRead = False
-        self.UpperMargin = 0.051
-        self.LowerMargin = 0.049
+        self.dt = np.dtype([('token', [('value', np.float), ('time', [('ts', np.float), ('tick', np.int), ('est_delay',
+                                                                                                           np.float)]),
+                                       ('ref', [('ts_ref', np.float), ('tick_ref', np.float)])]), ('delay', np.float)])
+        self.delay_list = np.array([], dtype=self.dt)
+        # self.ToWrite = True
+        # self.ToRead = False
+        # self.UpperMargin = 0.051
+        # self.LowerMargin = 0.049
         self.setup()
 
     #Read the file of delays and get the delay mesurements
@@ -62,7 +66,7 @@ class Delay(Actor):
                     self.seq.append(s)
                     d = float(line.split(",")[1])/1000.0
                     self.dl.append(d)
-            _log.info("Delay sequence length: {}".format(len(self.seq)))
+            #_log.info("Delay sequence length: {}".format(len(self.seq)))
             f.close()
         except IOError as err:
             _log.error(err)
@@ -80,28 +84,27 @@ class Delay(Actor):
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
             #_log.info("Available sequence no.{}".format(sq))
-            if len(self.delay_list) > 0:
+            if self.delay_list.shape[0] > 0:
                 #_log.info("Still holding tokens with the first delay {}".format(self.delay_list[0]['delay']))
                 duration = self.timer_stop - self.last_timer_stop
                 #_log.info("Decrease time_out value with {}.".format(duration))
-                for x in self.delay_list:
-                    x['delay'] -= duration
+                self.delay_list['delay'] -= duration
                 #_log.info("The least delay is {}".format(self.delay_list[0]['delay']))
             if sq == tick:
                 self.delay = self.dl[self.counter] / 2
                 self.counter += 1
-                self.delay_list.append({'token': token, 'delay': self.delay, 'tdelay': self.delay})
-                self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
+                self.delay_list = np.append(self.delay_list, np.array((token, self.delay), dtype=self.dt))
+                self.delay_list = np.sort(self.delay_list, order='delay')
                 #_log.info("my delay list: {}".format(self.delay_list))
             else:
-                _log.info("Packet loss")
+                _log.info("{}: Packet loss".format(self.name))
 
             #reset timer no matter the packet is dropped or not
             if not calvinsys.can_write(self.timer):
                 calvinsys.read(self.timer)
                 calvinsys.close(self.timer)
                 #_log.info("Stop the timer before writing a new one")
-            self.delay = self.delay_list[0]['delay']
+            self.delay = self.delay_list['delay'][0]
             if self.delay < 0:
                 self.delay = 0
             #_log.info("Write new time-out value: {}".format(self.delay))
@@ -119,21 +122,21 @@ class Delay(Actor):
 
     #@stateguard(lambda self: self.ToRead and not self.ToWrite and calvinsys.can_read(self.timer))
     @stateguard(lambda self: calvinsys.can_read(self.timer))
-    @condition([], ['token', 'tvalue'])
+    @condition([], ['token'])
     def passthrough(self):
-        _log.warning('Delay: passthrough')
+        _log.warning('{}: passthrough'.format(self.name))
         calvinsys.read(self.timer)
-        item = self.delay_list.pop(0)
+        item = self.delay_list['token'][0]
+        self.delay_list = np.delete(self.delay_list, 0)
         #_log.info("Send out packet at tick {}".format(item['tick']))
         self.timer_stop = self.time.timestamp()
-        self.ToWrite = True
-        self.ToRead = False
-        if len(self.delay_list) > 0:
+        # self.ToWrite = True
+        # self.ToRead = False
+        if self.delay_list.shape[0] > 0:
             #_log.info("Delay list not clean")
             duration = self.timer_stop - self.last_timer_stop
-            for x in self.delay_list:
-                x['delay'] -= duration
-            self.delay = self.delay_list[0]['delay']
+            self.delay_list['delay'][0] -= duration
+            self.delay = self.delay_list['delay'][0]
             if self.delay < 0:
                 self.delay = 0
             #_log.info("Write new delay for rest tokens {}".format(self.delay))
@@ -145,7 +148,7 @@ class Delay(Actor):
              #   _log.info("Wait for a new token")
             calvinsys.write(self.timer, self.delay)
         self.last_timer_stop = self.time.timestamp()
-        return (item['token'], item['tdelay'] )
+        return (item, )
 
     action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']
