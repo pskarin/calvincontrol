@@ -31,9 +31,8 @@ class Delay(Actor):
     """
 
     @manage(['timer', 'delay', 'name'])
-    def init(self, delay_data="/tmp/data.txt", name="DelayName"):
-        self.name = name
-        _log.warning("I am the delay actor for {}".format(self.name))
+    def init(self, delay_data="/tmp/data.txt", name=1):
+        self.name = None
         self.delay = 0.
         self.timer = calvinsys.open(self, "sys.timer.once")
         self.use('calvinsys.native.python-time', shorthand='time')
@@ -48,8 +47,10 @@ class Delay(Actor):
         self.delay_list = []
         self.ToWrite = True
         self.ToRead = False
-        self.UpperMargin = 0.051
-        self.LowerMargin = 0.049
+        #self.UpperMargin = 0.051
+        #self.LowerMargin = 0.04
+        self.set_name(name)
+        _log.info("I am {} actor.".format(self.name))
         self.setup()
 
     #Read the file of delays and get the delay mesurements
@@ -68,11 +69,19 @@ class Delay(Actor):
             _log.error(err)
             pass
 
+    def set_name(self, name):
+        if name == 1:
+            self.name = "OuterDelay"
+        if name == 2:
+            self.name = "InnerDelay"
+        if name == 3:
+            self.name = "ActDelay"
+
     #@stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token'], [])
     def token_available(self, token):
         _,clock_info,_ = token
-        _,tick,_ = clock_info
+        _,tick,_,_,_ = clock_info
         #_log.info("New token arrives at tick: {} ".format(tick))
         self.timer_stop = self.time.timestamp()
         self.recent_tokenin = self.timer_stop

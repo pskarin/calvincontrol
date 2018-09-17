@@ -73,7 +73,7 @@ class SimReader(Actor):
                     with open(self.log_file, 'a') as f:
                         f.write("{},{},{}\n".format(value, t, tick))
 		
-                return ((value, (t,tick, None,), None,),)
+                return ((value, (t, tick, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0, 0.0),),)
 
 	action_priority = (trigger,  )
 	requires = ['calvinsys.native.python-time']
