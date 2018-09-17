@@ -27,7 +27,7 @@ class SimWriter(Actor):
         self.device = device
         self.log_data = log_data
         self.log_maxsize = log_maxsize 
-        self.output_filename = "/tmp/log.txt"
+        self.output_filename = "/tmp/log_ListDelay.txt"
         self.setup()
         _log.warning("SimWriter; Finished")
 
@@ -53,8 +53,11 @@ class SimWriter(Actor):
         ts, tick, _ = t1
         expected_delay = delay
         actual_delay = self.time.timestamp() - ts
-        diff = expected_delay - actual_delay
+        diff = actual_delay - expected_delay
         _log.info("Actuator: The expected delay from inner controller: {}, actual delay: {} -- diff: {}".format(expected_delay, actual_delay, diff))
+        if self.log_data and os.stat(self.output_filename).st_size < self.log_maxsize:
+            with open(self.output_filename, 'a') as f:
+                f.write("{},{},{},{}\n".format(actual_delay, expected_delay, diffs))
 
         try:
             self.outqueue.send("{}".format((value/10.0)*2*math.pi))
@@ -76,10 +79,6 @@ class SimWriter(Actor):
                     .format(de_inner, t1[2], delay_inner[0])) 
             _log.warning("Outer; delay error {}, Estimated delay {}, actual delay {}"\
                     .format(de_outer, t2[2], delay_outer[0])) 
-           
-            if self.log_data and os.stat(self.output_filename).st_size < self.log_maxsize:
-                with open(self.output_filename, 'a') as f:
-                    f.write("{},{},{},{}\n".format(t1[2], delay_inner[0], t2[2], delay_outer[0]))
 
             _log.warning("Got here")
             return (delay_inner, delay_outer, )
