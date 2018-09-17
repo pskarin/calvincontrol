@@ -48,7 +48,8 @@ class Delay(Actor):
         self.recent_tokenin = None
         self.dt = np.dtype([('token', [('value', np.float), ('time', [('ts', np.float), ('tick', np.int), ('est_delay',
                                                                                                            np.float)]),
-                                       ('ref', [('ts_ref', np.float), ('tick_ref', np.float)])]), ('delay', np.float)])
+                                       ('ref', [('ts_ref', np.float), ('tick_ref', np.float), ('est_ref', np.float)])]),
+                            ('delay', np.float)])
         self.delay_list = np.array([], dtype=self.dt)
         # self.ToWrite = True
         # self.ToRead = False

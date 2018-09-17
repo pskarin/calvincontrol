@@ -57,7 +57,7 @@ class SimReader(Actor):
 		value = self.read()
 		self.monitor_value = value
                 _log.info("ADC Reader: Value sent out.")
-		return ((value, (self.time.timestamp(),tick, 0.,), (0.,0,),),)
+		return ((value, (self.time.timestamp(),tick, 0.,), (0.,0., 0., ),),)
 
 	action_priority = (trigger,  )
 	requires = ['calvinsys.native.python-time']
