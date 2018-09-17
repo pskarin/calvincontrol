@@ -22,7 +22,7 @@ class SimWriter(Actor):
     """
 
     @manage(['device', 'output_filename', 'log_data', 'log_maxsize'])
-    def init(self, device, log_data=False, log_maxsize=10**6):
+    def init(self, device, log_data=True, log_maxsize=10**6):
         _log.warning("SimWriter; Setting up")
         self.device = device
         self.log_data = log_data
@@ -57,7 +57,7 @@ class SimWriter(Actor):
         _log.info("Actuator: The expected delay from inner controller: {}, actual delay: {} -- diff: {}".format(expected_delay, actual_delay, diff))
         if self.log_data and os.stat(self.output_filename).st_size < self.log_maxsize:
             with open(self.output_filename, 'a') as f:
-                f.write("{},{},{},{}\n".format(actual_delay, expected_delay, diffs))
+                f.write("{},{},{}\n".format(actual_delay, expected_delay, diff))
 
         try:
             self.outqueue.send("{}".format((value/10.0)*2*math.pi))

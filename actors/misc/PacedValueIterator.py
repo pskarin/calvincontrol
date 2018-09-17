@@ -39,7 +39,7 @@ class PacedValueIterator(Actor):
 	def clocktick(self, tick):
 		value = self.values[self.index]
 		self.monitor_value = value
-		return ((value, ((self['time'].timestamp(),), tick), (0.0, 0.0)),)
+		return ((value, (self['time'].timestamp(), tick, 0.0), (0.0, 0.0, 0.0)),)
     
 	@stateguard(lambda self: self.timer and self.timer.triggered)
 	@condition([], [])
