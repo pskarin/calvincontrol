@@ -62,8 +62,8 @@ class SimWriter(Actor):
         except ipc.BusyError:
             sys.stderr.write("Failed to set new input, this should not happen\n")
         finally: 
-            delay_inner = (self.time.timestamp() - t1[0], t1[1])
-            delay_outer = (self.time.timestamp() - t2[0], t2[1])
+            delay_inner = (self.time.timestamp() - t1[0], (0.0, t1[1]))
+            delay_outer = (self.time.timestamp() - t2[0], (0.0, t2[1]))
 
             de_inner = t1[2] - delay_inner[0]
             de_outer = t2[2] - delay_outer[0]

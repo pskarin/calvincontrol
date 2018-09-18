@@ -80,8 +80,10 @@ class Delay(Actor):
     #@stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token'], [])
     def token_available(self, token):
-        _,clock_info,_ = token
-        _,tick,_,_,_ = clock_info
+        clock_info = token[1]
+        tick = clock_info[1]
+        #_,clock_info,_ = token
+        #_,tick,_,_,_ = clock_info
         #_log.info("New token arrives at tick: {} ".format(tick))
         self.timer_stop = self.time.timestamp()
         self.recent_tokenin = self.timer_stop
