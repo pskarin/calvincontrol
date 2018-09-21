@@ -26,7 +26,7 @@ class PIDClock(Actor):
              'tick', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est',
              'x', 'P', 'estimate', 'log_data', 'log_maxsize', 'log_file'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
-                beta=1., period=0.05, max_q=1000, name="Name", estimate=0, 
+                beta=1., period=0.05, max_q=1000, aname="Name", estimate=0,
                 log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
@@ -41,7 +41,7 @@ class PIDClock(Actor):
         self.max_q = max_q
         self.i = 0.
         self.d = 0.
-        self.name = name
+        self.name = aname
         self.delay_tick = 0
         self.delay_est = 0
 
