@@ -9,11 +9,12 @@ pos : io.SimReader(device="/bbsim_out2-0", scale=0.55, noise=0., log_data=1, log
 dis : misc.PacedValueIterator( period=5.0, values=[0.0, 5.0])
 
 /* For constant delays, 0.075 is a good value to consider */
-posdelay : std.Delay(delay=0.05)
-angdelay : std.Delay(delay=0.05)
-actdelay : std.Delay(delay=0.05)
-delayouter: std.Delay(delay=0.05)
-delayinner: std.Delay(delay=0.05)
+
+posdelay : std.DelayToken(delay_data="/tmp/delay_data.txt")
+angdelay : std.DelayToken(delay_data="/tmp/delay_data.txt")
+actdelay : std.DelayToken(delay_data="/tmp/delay_data.txt)
+delayouter: std.DelayToken(delay_data="/tmp/delay_data.txt")
+delayinner: std.DelayToken(delay_data="/tmp/delay_data.txt")
 
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick
@@ -25,7 +26,7 @@ outer.v > inner.y_ref
 inner.v >  actdelay.token
 actdelay.token > act.value
 act.delay_outer > delayouter.token
-delayouter.token > outer.measured_delay
+delayouter.token > outer.measured_delay /* Insert go through delay actor */
 act.delay_inner > delayinner.token
 delayinner.token > inner.measured_delay
 dis.value > outer.y_ref
