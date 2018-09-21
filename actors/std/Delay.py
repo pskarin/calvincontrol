@@ -31,7 +31,7 @@ class Delay(Actor):
     """
 
     @manage(['timer', 'delay', 'name'])
-    def init(self, delay_data="/tmp/data.txt", name=1):
+    def init(self, delay_data="/tmp/data.txt", name_serial=1):
         self.name = None
         self.delay = 0.
         self.timer = calvinsys.open(self, "sys.timer.once")
@@ -47,9 +47,7 @@ class Delay(Actor):
         self.delay_list = []
         self.ToWrite = True
         self.ToRead = False
-        #self.UpperMargin = 0.051
-        #self.LowerMargin = 0.04
-        self.set_name(name)
+        self.set_name(name_serial)
         _log.info("I am {} actor.".format(self.name))
         self.setup()
 
@@ -76,6 +74,10 @@ class Delay(Actor):
             self.name = "InnerDelay"
         if name == 3:
             self.name = "ActDelay"
+        if name == 4:
+            self.name = "OuterBack"
+        if name == 5:
+            self.name = "InnerBack"
 
     #@stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token'], [])
@@ -84,15 +86,15 @@ class Delay(Actor):
         tick = clock_info[1]
         #_,clock_info,_ = token
         #_,tick,_,_,_ = clock_info
-        #_log.info("New token arrives at tick: {} ".format(tick))
+        _log.info("{}: Token arrives at tick: {} ".format(self.name, tick))
         self.timer_stop = self.time.timestamp()
         self.recent_tokenin = self.timer_stop
         self.delay = 0
         if len(self.seq) > self.counter:
             sq = self.seq[self.counter]
-            #_log.info("Available sequence no.{}".format(sq))
+            _log.info("{}: Available sequence no.{}".format(self.name, sq))
             if len(self.delay_list) > 0:
-                #_log.info("Still holding tokens with the first delay {}".format(self.delay_list[0]['delay']))
+                _log.info("{}: Still holding {} tokens in the list".format(self.name, len(self.delay_list)))
                 duration = self.timer_stop - self.last_timer_stop
                 #_log.info("Decrease time_out value with {}.".format(duration))
                 for x in self.delay_list:
@@ -112,9 +114,14 @@ class Delay(Actor):
                 calvinsys.read(self.timer)
                 calvinsys.close(self.timer)
                 #_log.info("Stop the timer before writing a new one")
-            self.delay = self.delay_list[0]['delay']
-            if self.delay < 0:
-                self.delay = 0
+            if len(self.delay_list) > 0:
+                self.delay = self.delay_list[0]['delay']
+                if self.delay < 0:
+                    self.delay = 0
+            else:
+                self.last_timer_stop = self.time.timestamp()
+                return
+                
             #_log.info("Write new time-out value: {}".format(self.delay))
         self.last_timer_stop = self.time.timestamp()
         #if self.delay > self.UpperMargin:

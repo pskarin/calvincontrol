@@ -10,11 +10,11 @@ dis : misc.PacedValueIterator( period=5.0, values=[0.0, 5.0])
 
 /* For constant delays, 0.075 is a good value to consider */
 
-posdelay : std.DelayToken(delay_data="/tmp/delay_data.txt")
-angdelay : std.DelayToken(delay_data="/tmp/delay_data.txt")
-actdelay : std.DelayToken(delay_data="/tmp/delay_data.txt)
-delayouter: std.DelayToken(delay_data="/tmp/delay_data.txt")
-delayinner: std.DelayToken(delay_data="/tmp/delay_data.txt")
+posdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=1)
+angdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=2)
+actdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=3)
+delayouter: std.Delay(delay_data="/tmp/delay_data.txt", name_serial=4)
+delayinner: std.Delay(delay_data="/tmp/delay_data.txt", name_serial=5)
 
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick
