@@ -3,6 +3,8 @@ import sys
 from calvin.actor.actor import Actor, manage, condition, stateguard, calvinsys
 from calvin.utilities.calvinlogger import get_actor_logger
 from collections import deque
+import os
+import os.path
 import numpy as np
 _log = get_actor_logger(__name__)
 
@@ -22,9 +24,10 @@ class PIDClock(Actor):
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 't_old', 't_old_meas', 'timer', 'period', 'started', 
              'tick', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est',
-             'x', 'P'])
+             'x', 'P', 'estimate', 'log_data', 'log_maxsize', 'log_file'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
-             beta=1., period=0.05, max_q=1000, name="Name"):
+                beta=1., period=0.05, max_q=1000, name="Name", estimate=0, 
+                log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
@@ -42,17 +45,23 @@ class PIDClock(Actor):
         self.delay_tick = 0
         self.delay_est = 0
 
+        self.estimate = estimate
+
         self.y_old = 0.
 
-        self.x = np.zeros((2, 1))
-        self.P = np.eye(2)
+        self.x = np.zeros((3, 1))
+        self.P = np.eye(3)
+        
+        self.log_data = log_data
+        self.log_maxsize = log_maxsize 
+        self.log_file = log_file
 
         self.started = False
         self.tick = 0
         self.setup()
         self.t_old = self.time.timestamp()
         self.t_old_meas = self.time.timestamp()
-        self.y_estim = 0
+        self.y_estim = (0, 0)
         self.y_ref = (0, (self.t_old_meas, self.tick, 1.0), (0.0, 0.0, 0.0))
         
         # Message queue (deque is thread-safe no need for a lock)
@@ -67,13 +76,19 @@ class PIDClock(Actor):
         self.qt = self.time.timestamp()
         _log.warning("Set up")
         Cont = calvinsys.can_write(self.timer)
+        
+        if self.log_data:
+            with open(self.log_file, 'w') as f:
+                f.write("\n")
+
         if not Cont:
             _log.warning("  Can't write timer")
         elif not self.started:
             _log.warning("  write timer")
+        
 
-    @stateguard(lambda self: (not self.started
-                              and calvinsys.can_write(self.timer)))
+
+    @stateguard(lambda self: (not self.started and calvinsys.can_write(self.timer)))
     @condition([], [])
     def start_timer(self):
         #_log.warning("Start Timer")
@@ -97,8 +112,10 @@ class PIDClock(Actor):
             _log.warning("  buffer empty, use old estimate")
             self.y_estim = self.y_old
         """
-        self.estimator_run()
-        _log.warning("Estimation complete")
+        if self.estimate:
+            self.estimator_run()
+            _log.warning("Estimation complete")
+        
         v = self.calc_output()
         _log.warning(self.name + "; calculation complete, returning")
         return (v, )
@@ -114,17 +131,22 @@ class PIDClock(Actor):
 
         # calculate the time step, if it is negative corresponding to a previous value, 
         # then return.
+        
+        if not self.estimate:
+            self.y_estim = (y[0], y[1][0])
+            return
+
         h = y[1][0] - self.t_old_meas
         _log.warning("h: {}".format(h))
         if h < 0:
             return
 
-        sig_Q = 0.01
-        sig_R = 0.0001
+        sig_Q = 1000000000
+        sig_R = 0.00000000001
 
-        A = np.array([[1, h], [0, 1]])
-        C = np.array([[1, 0]])
-        Q = sig_Q*np.eye(2)
+        A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
+        C = np.array([[1, 0, 0]])
+        Q = sig_Q*np.eye(3)
         R = sig_R*np.eye(1)
 
         xp = A.dot(self.x)
@@ -134,9 +156,14 @@ class PIDClock(Actor):
         S = C.dot(Pp).dot(C.T) + R
         K = Pp.dot(C.T).dot(np.linalg.inv(S))
         self.x = xp + K.dot(err)
-        self.P = (np.eye(2) - K.dot(C)).dot(Pp).dot((np.eye(2) - K.dot(C)).T) + K.dot(R).dot(K.T)
+        self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
         self.t_old_meas = y[1][0]
+        
+        if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
+            with open(self.log_file, 'a') as f:
+                f.write("{},{},{},{},{},{},{}\n".format(self.x[0,0], self.x[1,0], self.P[0,0], self.P[0,1], self.P[1,0], self.P[1,1], y[1][0]))
+
         return
 
     @condition(['y_ref'], [])
@@ -200,9 +227,9 @@ class PIDClock(Actor):
         """
 
         h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
-        A = np.array([[1, h], [0, 1]])
+        A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
         xp = A.dot(self.x)
-        self.y_estim = np.asscalar(xp[0])
+        self.y_estim = (np.asscalar(xp[0]), h + self.t_old_meas)
         return
 
     def did_migrate(self):
@@ -210,7 +237,7 @@ class PIDClock(Actor):
     
     def calc_output(self):
         y_ref, t_ref, _  = self.y_ref
-        y = self.y_estim
+        y = self.y_estim[0]
         t = self.time.timestamp()
         dt = t - self.t_old
         self.t_old = t
@@ -238,7 +265,7 @@ class PIDClock(Actor):
 
         _log.warning("  control output calculated")
         _log.info("t: {}, t_ref: {}".format(t, t_ref))
-        return (u, (t, self.tick, self.delay_est, self.y_estim, self.t_old_meas), t_ref)
+        return (u, (t, self.tick, self.delay_est, self.y_estim[0], self.y_estim[1]), t_ref)
 
     action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
     requires = ['calvinsys.native.python-time', 'sys.timer.repeating']
