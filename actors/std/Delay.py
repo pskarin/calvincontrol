@@ -112,7 +112,7 @@ class Delay(Actor):
             self.dl.pop(sq_index)
             self.seq.pop(sq_index)
 
-            self.delay_list.append({'token': token, 'delay': self.delay, 'tick': tick})
+            self.delay_list.append({'token': token, 'delay': self.delay, 'tick': sq})
             self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
                 #_log.info("my delay list: {}".format(self.delay_list))
 
