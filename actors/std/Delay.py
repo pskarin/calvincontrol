@@ -40,7 +40,7 @@ class Delay(Actor):
         self.path = delay_data
         self.seq = []
         self.dl = []
-        self.counter = 0
+        # self.counter = 0
         self.timer_stop = None
         self.last_timer_stop = None
         self.recent_tokenin = None
@@ -90,9 +90,9 @@ class Delay(Actor):
         self.timer_stop = self.time.timestamp()
         self.recent_tokenin = self.timer_stop
         self.delay = 0
-        if len(self.seq) > self.counter:
-            sq = self.seq[self.counter]
-            _log.info("{}: Available sequence no.{}".format(self.name, sq))
+        if len(self.seq) > 0:
+            #sq = self.seq[self.counter]
+            #_log.info("{}: Available sequence no.{}".format(self.name, sq))
             if len(self.delay_list) > 0:
                 _log.info("{}: Still holding {} tokens in the list".format(self.name, len(self.delay_list)))
                 duration = self.timer_stop - self.last_timer_stop
@@ -100,30 +100,29 @@ class Delay(Actor):
                 for x in self.delay_list:
                     x['delay'] -= duration
                 #_log.info("The least delay is {}".format(self.delay_list[0]['delay']))
-            if sq == tick:
-                self.delay = self.dl[self.counter] / 2
-                self.counter += 1
-                self.delay_list.append({'token': token, 'delay': self.delay, 'tick': sq})
-                self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
-                #_log.info("my delay list: {}".format(self.delay_list))
-            else:
+            #if sq == tick:
+            try:
+                sq_index = self.seq.index(tick)
+            except:
                 _log.info("{}: Packet loss".format(self.name))
+                self.last_timer_stop = self.time.timestamp()
+                return
+
+            self.delay = self.dl[sq_index] / 2
+            self.dl.pop(sq_index)
+            self.seq.pop(sq_index)
+
+            self.delay_list.append({'token': token, 'delay': self.delay, 'tick': tick})
+            self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
+                #_log.info("my delay list: {}".format(self.delay_list))
 
             #reset timer no matter the packet is dropped or not
             if not calvinsys.can_write(self.timer):
                 calvinsys.read(self.timer)
                 calvinsys.close(self.timer)
                 #_log.info("Stop the timer before writing a new one")
-            if len(self.delay_list) > 0:
-                self.delay = self.delay_list[0]['delay']
-                if self.delay < 0:
-                    self.delay = 0
-            else:
-                self.last_timer_stop = self.time.timestamp()
-                return
-                
             #_log.info("Write new time-out value: {}".format(self.delay))
-        self.last_timer_stop = self.time.timestamp()
+            self.last_timer_stop = self.time.timestamp()
         #if self.delay > self.UpperMargin:
          #   self.ToWrite = True
           #  self.ToRead = False
@@ -133,7 +132,7 @@ class Delay(Actor):
            # self.ToRead = True
             #_log.info("Go to passthrough")
         #_log.info("Time used for setting the timer: {}".format(self.time.timestamp() - self.timer_stop))
-        calvinsys.write(self.timer, self.delay)
+            calvinsys.write(self.timer, self.delay)
 
     #@stateguard(lambda self: self.ToRead and not self.ToWrite and calvinsys.can_read(self.timer))
     @stateguard(lambda self: calvinsys.can_read(self.timer))
@@ -168,12 +167,3 @@ class Delay(Actor):
     action_priority = (passthrough, token_available, )
     requires = ['sys.timer.once']
 
-# test_kwargs = {'delay': 20}
-# test_calvinsys = {'sys.timer.repeating': {'read': ["d", "u", "m", "m", "y"],
-#                                           'write': [20]}}
-# test_set = [
-#     {
-#         'inports': {'token': ["a", "b", 1]},
-#         'outports': {'token': ["a", "b", 1]}
-#     }
-# ]
