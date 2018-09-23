@@ -121,7 +121,7 @@ class PIDClock(Actor):
         
         v = self.calc_output()
         _log.warning(self.name + "; calculation complete, returning and start timer for next period")
-        self.start_timer(self.timer, self.period)
+        self.start_timer(self.period)
         return (v, )
 
     #@stateguard(lambda self: (calvinsys.can_read(self.y)))
@@ -169,7 +169,7 @@ class PIDClock(Actor):
                 f.write("{},{},{},{},{},{},{}\n".format(self.x[0,0], self.x[1,0], self.P[0,0], self.P[0,1], self.P[1,0], self.P[1,1], y[1][0]))
 
         _log.info("{}: trigger the estimator for the new arrival token.".format(self.name))
-        self.start_timer(self.timer, 0)
+        self.start_timer(0)
 
         return
 
