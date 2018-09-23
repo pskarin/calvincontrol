@@ -70,7 +70,7 @@ class PIDClock(Actor):
         #self.msg_estim_q = deque([], maxlen=self.max_q)
 
     def setup(self):
-        self.timer = calvinsys.open(self, "sys.timer.repeating")
+        self.timer = calvinsys.open(self, "sys.timer.once")
         self.use('calvinsys.native.python-time', shorthand='time')
         self.time = self['time']
         self.qt = self.time.timestamp()
@@ -88,12 +88,15 @@ class PIDClock(Actor):
         
 
 
-    @stateguard(lambda self: (not self.started and calvinsys.can_write(self.timer)))
-    @condition([], [])
-    def start_timer(self):
-        #_log.warning("Start Timer")
+    #@stateguard(lambda self: (not self.started and calvinsys.can_write(self.timer)))
+    #@condition([], [])
+    def start_timer(self, period):
+        _log.info("{}: Start Timer with period: {}".format(self.name, period))
+        if not calvinsys.can_write(self.timer):
+            calvinsys.read(self.timer)
+            calvinsys.close(self.timer)
         self.started = True
-        calvinsys.write(self.timer, self.period)
+        calvinsys.write(self.timer, period)
         return
 
     @stateguard(lambda self: calvinsys.can_read(self.timer))
@@ -117,7 +120,8 @@ class PIDClock(Actor):
             _log.warning("Estimation complete")
         
         v = self.calc_output()
-        _log.warning(self.name + "; calculation complete, returning")
+        _log.warning(self.name + "; calculation complete, returning and start timer for next period")
+        self.start_timer(self.timer, self.period)
         return (v, )
 
     #@stateguard(lambda self: (calvinsys.can_read(self.y)))
@@ -163,6 +167,9 @@ class PIDClock(Actor):
         if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
             with open(self.log_file, 'a') as f:
                 f.write("{},{},{},{},{},{},{}\n".format(self.x[0,0], self.x[1,0], self.P[0,0], self.P[0,1], self.P[1,0], self.P[1,1], y[1][0]))
+
+        _log.info("{}: trigger the estimator for the new arrival token.".format(self.name))
+        self.start_timer(self.timer, 0)
 
         return
 
@@ -267,5 +274,5 @@ class PIDClock(Actor):
         _log.info("t: {}, t_ref: {}".format(t, t_ref))
         return (u, (t, self.tick, self.delay_est, self.y_estim[0], self.y_estim[1]), t_ref)
 
-    action_priority = (start_timer, timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
-    requires = ['calvinsys.native.python-time', 'sys.timer.repeating']
+    action_priority = (timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
+    requires = ['calvinsys.native.python-time', 'sys.timer.once']
