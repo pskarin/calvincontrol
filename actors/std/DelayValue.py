@@ -20,7 +20,7 @@ import operator
 from calvin.utilities.calvinlogger import get_actor_logger
 _log = get_actor_logger(__name__)
 
-class Delay(Actor):
+class DelayValue(Actor):
     """
     After first token, pass on token once every 'delay' seconds.
     Input :
@@ -52,19 +52,18 @@ class Delay(Actor):
     #@stateguard(lambda self: self.ToWrite and not self.ToRead)
     @condition(['token'], [])
     def token_available(self, token):
-        _log.info("{}: Token arrives at tick: {} ".format(self.name, tick))
         self.timer_stop = self.time.timestamp()
         self.recent_tokenin = self.timer_stop
-        self.delay = token[1][0]
+        _log.warning("{}: Adding delay: {}".format(self.name, token[1]))
         if len(self.delay_list) > 0:
             _log.info("{}: Still holding {} tokens in the list".format(self.name, len(self.delay_list)))
             duration = self.timer_stop - self.last_timer_stop
             for x in self.delay_list:
                 x['delay'] -= duration
 
-        self.delay_list.append({'token': token, 'delay': self.delay})
+        self.delay_list.append({'token': token, 'delay': token[1]}) 
         self.delay_list = sorted(self.delay_list, key=lambda k: k['delay'])
-        
+
         if not calvinsys.can_write(self.timer):
             calvinsys.read(self.timer)
             calvinsys.close(self.timer)

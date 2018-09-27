@@ -117,20 +117,21 @@ class APIDSmith(Actor):
         _log.warning(self.name + "; calculation complete, returning and start timer for next period")
         self.start_timer(self.period)
        
-        # Update direct term of smith predictor
-
-        return (v,v,)
+        # TODO: Add correct waiting term!
+        u_d = (v[0], self.delay_est + (self.time.timestamp() - self.t_old_meas), v[1][1])
+        return (v, u_d,)
 
     @condition(['u_d'], [])
-    def update_smith(self, v):
-        if self.tick_smith > v[1][1]:
-            self.tick_smith = v[1][1]
+    def update_smith(self, u_d):
+        _log.warning("Update smith")
+        if self.tick_smith < u_d[2]:
+            self.tick_smith = u_d[2]
 
             t = self.time.timestamp()
             dt = t - self.t_old_smith
             self.t_old_smith = t
 
-            self.E_2 = self.model(self.E_2, dt*v[0])
+            self.E_2 = self.model(self.E_2, dt*u_d[0])
         
 
     #@stateguard(lambda self: (calvinsys.can_read(self.y)))
@@ -139,7 +140,8 @@ class APIDSmith(Actor):
         if not self.estimate:
             self.y_estim = (y[0], y[1][0])
         else:
-            self.y_estim = (y[0] + self.E_1 - self.E_2, self.time.timestamp())
+            self.y_estim = (y[0] + self.E_1 - self.E_2, self.time.timestamp()) #y[1][0] + self.delay_est)
+            self.t_old_meas = y[1][0]
 
         if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
             with open(self.log_file, 'a') as f:
