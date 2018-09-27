@@ -9,9 +9,10 @@ import numpy as np
 _log = get_actor_logger(__name__)
 
 
-class PIDClock(Actor):
+class APIDKalman(Actor):
     '''
-    Generic PID
+    PID controller with asyncronous updates. Uses the kalman filter on a model of quadratic 
+    interpolation to compensate for delays
 
     Inputs:
         y: Measured value

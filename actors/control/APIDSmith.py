@@ -9,25 +9,29 @@ import numpy as np
 _log = get_actor_logger(__name__)
 
 
-class PIDClock(Actor):
+class APIDSmith(Actor):
     '''
-    Generic PID
+    PID controller with asynchronous updates. Uses the Smith predictor to compensate for delays.
+    The model of the process needs to be supplied in this script.
 
     Inputs:
         y: Measured value
         y_ref: Reference point
         measured_delay: The measured true delay
+        u_d: Smith delay input
     Outputs:
         v: Control value
+        u_d: Smith delay trigger
     '''
 
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 't_old', 't_old_meas', 'timer', 'period', 'started', 
              'tick', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est',
-             'x', 'P', 'estimate', 'log_data', 'log_maxsize', 'log_file', 'sig_Q', 'sig_R'])
+             'estimate', 'log_data', 'log_maxsize', 'log_file', 'E_1', 'E_2',
+             'tick_smith', 't_old_smith'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
                 beta=1., period=0.05, max_q=1000, aname="Name", estimate=0,
-                log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6, sig_Q=1, sig_R=1):
+                log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
@@ -48,12 +52,11 @@ class PIDClock(Actor):
         self.estimate = estimate
 
         self.y_old = 0.
+        self.E_1 = 0.0
+        self.E_2 = 0.0
+        self.model = lambda x, u: x + 4.5*u 
+        self.tick_smith = 0
 
-        self.x = np.zeros((3, 1))
-        self.P = np.eye(3)
-        self.sig_Q = sig_Q
-        self.sig_R = sig_R
-        
         self.log_data = log_data
         self.log_maxsize = log_maxsize 
         self.log_file = log_file
@@ -63,6 +66,7 @@ class PIDClock(Actor):
         self.setup()
         self.t_old = self.time.timestamp()
         self.t_old_meas = self.time.timestamp()
+        self.t_old_smith = self.time.timestamp()
         self.y_estim = (0, 0)
         self.y_ref = (0, (self.t_old_meas, self.tick, 1.0), (0.0, 0.0, 0.0))
         
@@ -102,72 +106,47 @@ class PIDClock(Actor):
         return
 
     @stateguard(lambda self: calvinsys.can_read(self.timer))
-    @condition([], ['v'])
+    @condition([], ['v', 'u_d'])
     def timer_trigger(self):
         _log.warning(self.name + "; Tick: {}".format(self.tick))
         _log.debug('Take values from buffer on timer trigger.')
         calvinsys.read(self.timer)
         self.tick += 1
-        
-        """
-        if len(self.msg_q) > 0:
-            _log.warning("  Read buffer and estimate y")
-            self.y_estim = self.estimator_run()
-        else:
-            _log.warning("  buffer empty, use old estimate")
-            self.y_estim = self.y_old
-        """
-        if self.estimate:
-            self.estimator_run()
-            _log.warning("Estimation complete")
-        
+
         v = self.calc_output()
         _log.warning(self.name + "; calculation complete, returning and start timer for next period")
         self.start_timer(self.period)
-        return (v, )
+       
+        # Update direct term of smith predictor
+
+        return (v,v,)
+
+    @condition(['u_d'], [])
+    def update_smith(self, v):
+        if self.tick_smith > v[1][1]:
+            self.tick_smith = v[1][1]
+
+            t = self.time.timestamp()
+            dt = t - self.t_old_smith
+            self.t_old_smith = t
+
+            self.E_2 = self.model(self.E_2, dt*v[0])
+        
 
     #@stateguard(lambda self: (calvinsys.can_read(self.y)))
     @condition(['y'], [])
     def msg_trigger(self, y):
-        #''' Save token messages received for future use '''
-        #_log.info(self.name + "; buffering measurements: {}".format(y))
-        #self.msg_q.append(y) # Save entire input for timestamps
-
-        # Update states using the measurement
-
-        # calculate the time step, if it is negative corresponding to a previous value, 
-        # then return.
-        
         if not self.estimate:
             self.y_estim = (y[0], y[1][0])
         else:
-            h = y[1][0] - self.t_old_meas
-            _log.warning("h: {}".format(h))
-            if h < 0:
-                return
-            A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
-            C = np.array([[1, 0, 0]])
-            Q = self.sig_Q*np.eye(3)
-            R = self.sig_R*np.eye(1)
+            self.y_estim = (y[0] + self.E_1 - self.E_2, self.time.timestamp())
 
-            xp = A.dot(self.x)
-            Pp = A.dot(self.P).dot(A.T) + (h**2)*Q
-
-            err = y[0] - C.dot(xp)
-            S = C.dot(Pp).dot(C.T) + R
-            K = Pp.dot(C.T).dot(np.linalg.inv(S))
-            self.x = xp + K.dot(err)
-            self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
-
-            self.t_old_meas = y[1][0]
-        
         if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
             with open(self.log_file, 'a') as f:
-                f.write("{},{},{},{},{},{},{}\n".format(self.x[0,0], self.x[1,0], self.P[0,0], self.P[0,1], self.P[1,0], self.P[1,1], y[1][0]))
+                f.write("{},{},{},{}\n".format(self.y_estim[0], self.E_1, self.E_2, self.y_estim[1]))
 
         _log.info("{}: trigger the controller for the new arrival token.".format(self.name))
         self.start_timer(0)
-
         return
 
     @condition(['y_ref'], [])
@@ -187,53 +166,6 @@ class PIDClock(Actor):
             _log.warning("Sent delay is behind current estimate")
 
         _log.warning("Est delay: {}, old delay: {}".format(self.delay_est, measured_delay[0]))
-        return
-
-
-    # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
-    # along with the next value
-    #def estimate_delay(self):
-    #    for k in range(len(self.msg_estim_q)):
-    #        # (true delay, tick)
-    #        arrival_tuple = self.msg_estim_q[k][3]
-
-
-    # For a kalman filter, use a second order integrator as the linear model (position and speed as the 
-    # unknown parameters that should be estimated). For an incomming tick k, estimate x_k from
-    # x_k-1 and correct with y_k. When the estimator should run, use the model, the delay
-    # estimation, the delay from the tick k  and x_k to estimate y_t. 
-    def estimator_run(self, mode='average'):
-
-        """
-        ''' Estimate the next tick values using the saved received ones '''
-        # Move content of msg_q to estim_q
-        self.msg_estim_q.extend(self.msg_q)
-        self.msg_q.clear()
-        
-        #h = estimate_delay()
-
-        _log.warning("  Estimate using {}, queue length: {}".format(
-                     mode, len(self.msg_estim_q)))
-        if mode == 'extrapolate':
-            # Use numpy and do curve fitting of the values stored
-            est_weights = np.polyfit(x=range(0, len(self.msg_estim_q)),
-                                     y=self.msg_estim_q,
-                                     deg=1)
-            est_fct = np.poly2d(est_weights)
-            estimated = est_fct(self.tick + 1)
-        elif mode == 'average':
-            estimated = sum([msg[0] for msg in self.msg_estim_q]) / len(self.msg_estim_q)
-        else:  # use last received value
-            estimated = self.msg_estim_q[-1]
-
-        self.msg_estim_q.clear()  # Clear the queue now that we used it
-        _log.warning("  Estimated y is: {} ({})".format(estimated, mode))
-        """
-
-        h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
-        A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
-        xp = A.dot(self.x)
-        self.y_estim = (np.asscalar(xp[0]), h + self.t_old_meas)
         return
 
     def did_migrate(self):
@@ -264,12 +196,14 @@ class PIDClock(Actor):
 
         # Update state
         self.y_old = y
-
+        
         self.monitor_value = u
+        
+        self.E_1 = self.model(self.E_1, dt*u)
 
         _log.warning("  control output calculated")
         _log.info("t: {}, t_ref: {}".format(t, t_ref))
         return (u, (t, self.tick, self.delay_est, self.y_estim[0], self.y_estim[1]), t_ref)
 
-    action_priority = (timer_trigger, msg_trigger, ref_trigger, delay_trigger, )
+    action_priority = (timer_trigger, msg_trigger, ref_trigger, delay_trigger, update_smith, )
     requires = ['calvinsys.native.python-time', 'sys.timer.once']
