@@ -24,10 +24,10 @@ class PIDClock(Actor):
     @manage(['td', 'ti', 'tr', 'kp', 'ki', 'kd', 'n', 'beta', 'i', 'd',
              'y_old', 't_old', 't_old_meas', 'timer', 'period', 'started', 
              'tick', 'y_estim', 'y_ref', 'name', 'delay_tick', 'delay_est',
-             'x', 'P', 'estimate', 'log_data', 'log_maxsize', 'log_file'])
+             'x', 'P', 'estimate', 'log_data', 'log_maxsize', 'log_file', 'sig_Q', 'sig_R'])
     def init(self, td=1., ti=5., tr=10., kp=-.2, ki=0., kd=0., n=10.,
                 beta=1., period=0.05, max_q=1000, aname="Name", estimate=0,
-                log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6):
+                log_data=0, log_file="/tmp/pid_tmp_log.txt", log_maxsize=10**6, sig_Q=1, sig_R=1):
         _log.warning("PID Clock period: {}".format(period))
         self.td = td
         self.ti = ti
@@ -51,6 +51,8 @@ class PIDClock(Actor):
 
         self.x = np.zeros((3, 1))
         self.P = np.eye(3)
+        self.sig_Q = sig_Q
+        self.sig_R = sig_R
         
         self.log_data = log_data
         self.log_maxsize = log_maxsize 
@@ -138,37 +140,32 @@ class PIDClock(Actor):
         
         if not self.estimate:
             self.y_estim = (y[0], y[1][0])
-            return
+        else:
+            h = y[1][0] - self.t_old_meas
+            _log.warning("h: {}".format(h))
+            if h < 0:
+                return
+            A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
+            C = np.array([[1, 0, 0]])
+            Q = self.sig_Q*np.eye(3)
+            R = self.sig_R*np.eye(1)
 
-        h = y[1][0] - self.t_old_meas
-        _log.warning("h: {}".format(h))
-        if h < 0:
-            return
+            xp = A.dot(self.x)
+            Pp = A.dot(self.P).dot(A.T) + (h**2)*Q
 
-        sig_Q = 1000000000
-        sig_R = 0.00000000001
+            err = y[0] - C.dot(xp)
+            S = C.dot(Pp).dot(C.T) + R
+            K = Pp.dot(C.T).dot(np.linalg.inv(S))
+            self.x = xp + K.dot(err)
+            self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
-        A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
-        C = np.array([[1, 0, 0]])
-        Q = sig_Q*np.eye(3)
-        R = sig_R*np.eye(1)
-
-        xp = A.dot(self.x)
-        Pp = A.dot(self.P).dot(A.T) + (h**2)*Q
-
-        err = y[0] - C.dot(xp)
-        S = C.dot(Pp).dot(C.T) + R
-        K = Pp.dot(C.T).dot(np.linalg.inv(S))
-        self.x = xp + K.dot(err)
-        self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
-
-        self.t_old_meas = y[1][0]
+            self.t_old_meas = y[1][0]
         
         if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
             with open(self.log_file, 'a') as f:
                 f.write("{},{},{},{},{},{},{}\n".format(self.x[0,0], self.x[1,0], self.P[0,0], self.P[0,1], self.P[1,0], self.P[1,1], y[1][0]))
 
-        _log.info("{}: trigger the estimator for the new arrival token.".format(self.name))
+        _log.info("{}: trigger the controller for the new arrival token.".format(self.name))
         self.start_timer(0)
 
         return
