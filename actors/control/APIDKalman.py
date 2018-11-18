@@ -17,7 +17,7 @@ class APIDKalman(Actor):
     Inputs:
         y: Measured value
         y_ref: Reference point
-        measured_delay: The measured true delay
+        RTT_message: The measured true delay
     Outputs:
         v: Control value
     '''
@@ -110,14 +110,6 @@ class APIDKalman(Actor):
         calvinsys.read(self.timer)
         self.tick += 1
         
-        """
-        if len(self.msg_q) > 0:
-            _log.warning("  Read buffer and estimate y")
-            self.y_estim = self.estimator_run()
-        else:
-            _log.warning("  buffer empty, use old estimate")
-            self.y_estim = self.y_old
-        """
         if self.estimate:
             self.estimator_run()
             _log.warning("Estimation complete")
@@ -140,9 +132,9 @@ class APIDKalman(Actor):
         # then return.
         
         if not self.estimate:
-            self.y_estim = (y[0], y[1][0])
+            self.y_estim = (y[0], self.time.timestamp())
         else:
-            h = y[1][0] - self.t_old_meas
+            h = self.time.timestamp() - self.t_old_meas
             _log.warning("h: {}".format(h))
             if h < 0:
                 return
@@ -160,7 +152,7 @@ class APIDKalman(Actor):
             self.x = xp + K.dot(err)
             self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
-            self.t_old_meas = y[1][0]
+            self.t_old_meas = self.time.timestamp()
         
         if self.log_data and os.stat(self.log_file).st_size < self.log_maxsize:
             with open(self.log_file, 'a') as f:
@@ -178,59 +170,25 @@ class APIDKalman(Actor):
             self.y_ref = y_ref
         return
 
-    @condition(['measured_delay'], [])
-    def delay_trigger(self, measured_delay):
-        if measured_delay[1] > self.delay_tick:
+    @condition(['RTT_message'], [])
+    def delay_trigger(self, RTT_message):
+        delay = 0
+        if RTT_message[1] > self.delay_tick:
             # Estimate delay using a simple EWMA filter
-            self.delay_est = 0.2*measured_delay[0] + 0.8*self.delay_est
-            self.delay_tick = measured_delay[1]
+            delay = self.time.timestamp() - RTT_message[0]
+            self.delay_est = 0.2*delay + 0.8*self.delay_est
+            self.delay_tick = RTT_message[1]
         else:
             _log.warning("Sent delay is behind current estimate")
 
-        _log.warning("Est delay: {}, old delay: {}".format(self.delay_est, measured_delay[0]))
+        _log.warning("Est delay: {}, old delay: {}".format(self.delay_est, delay))
         return
-
-
-    # When actuating, calculate the real delay using timestamp and pair it with its tick. Send it
-    # along with the next value
-    #def estimate_delay(self):
-    #    for k in range(len(self.msg_estim_q)):
-    #        # (true delay, tick)
-    #        arrival_tuple = self.msg_estim_q[k][3]
-
-
+    
     # For a kalman filter, use a second order integrator as the linear model (position and speed as the 
     # unknown parameters that should be estimated). For an incomming tick k, estimate x_k from
     # x_k-1 and correct with y_k. When the estimator should run, use the model, the delay
     # estimation, the delay from the tick k  and x_k to estimate y_t. 
-    def estimator_run(self, mode='average'):
-
-        """
-        ''' Estimate the next tick values using the saved received ones '''
-        # Move content of msg_q to estim_q
-        self.msg_estim_q.extend(self.msg_q)
-        self.msg_q.clear()
-        
-        #h = estimate_delay()
-
-        _log.warning("  Estimate using {}, queue length: {}".format(
-                     mode, len(self.msg_estim_q)))
-        if mode == 'extrapolate':
-            # Use numpy and do curve fitting of the values stored
-            est_weights = np.polyfit(x=range(0, len(self.msg_estim_q)),
-                                     y=self.msg_estim_q,
-                                     deg=1)
-            est_fct = np.poly2d(est_weights)
-            estimated = est_fct(self.tick + 1)
-        elif mode == 'average':
-            estimated = sum([msg[0] for msg in self.msg_estim_q]) / len(self.msg_estim_q)
-        else:  # use last received value
-            estimated = self.msg_estim_q[-1]
-
-        self.msg_estim_q.clear()  # Clear the queue now that we used it
-        _log.warning("  Estimated y is: {} ({})".format(estimated, mode))
-        """
-
+    def estimator_run(self):
         h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
         A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
         xp = A.dot(self.x)

@@ -77,8 +77,10 @@ class SimWriter(Actor):
                 with open(self.output_filename, 'a') as f:
                     f.write("{},{},{},{},{},{},{},{}\n".format(t1[2], delay_inner[0], t2[2], delay_outer[0], t1[3], t1[4], t2[3], t2[4]))
 
-            _log.warning("Got here")
-            return (delay_inner, delay_outer, )
+            #_log.warning("Got here")
+            
+            #return (delay_inner, delay_outer, )
+            return (t1, t2, )
 
     action_priority = (write, )
     requires = ['calvinsys.native.python-time']
