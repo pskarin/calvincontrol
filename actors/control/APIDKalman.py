@@ -50,8 +50,8 @@ class APIDKalman(Actor):
 
         self.y_old = 0.
 
-        self.x = np.zeros((3, 1))
-        self.P = np.eye(3)
+        self.x = np.zeros((2, 1))
+        self.P = np.eye(2)
         self.sig_Q = sig_Q
         self.sig_R = sig_R
         
@@ -138,9 +138,16 @@ class APIDKalman(Actor):
             _log.warning("h: {}".format(h))
             if h < 0:
                 return
+            """
             A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
             C = np.array([[1, 0, 0]])
             Q = self.sig_Q*np.eye(3)
+            R = self.sig_R*np.eye(1)
+            """
+            
+            A = np.array([[1, h], [0, 1]])
+            C = np.array([[1, 0]])
+            Q = self.sig_Q*np.eye(2)
             R = self.sig_R*np.eye(1)
 
             xp = A.dot(self.x)
@@ -150,7 +157,7 @@ class APIDKalman(Actor):
             S = C.dot(Pp).dot(C.T) + R
             K = Pp.dot(C.T).dot(np.linalg.inv(S))
             self.x = xp + K.dot(err)
-            self.P = (np.eye(3) - K.dot(C)).dot(Pp).dot((np.eye(3) - K.dot(C)).T) + K.dot(R).dot(K.T)
+            self.P = (np.eye(2) - K.dot(C)).dot(Pp).dot((np.eye(2) - K.dot(C)).T) + K.dot(R).dot(K.T)
 
             self.t_old_meas = self.time.timestamp()
         
@@ -190,7 +197,7 @@ class APIDKalman(Actor):
     # estimation, the delay from the tick k  and x_k to estimate y_t. 
     def estimator_run(self):
         h = self.delay_est + (self.time.timestamp() - self.t_old_meas)
-        A = np.array([[1, h, h**2/2], [0, 1, h], [0, 0, 1]])
+        A = np.array([[1, h], [0, 1]])
         xp = A.dot(self.x)
         self.y_estim = (np.asscalar(xp[0]), h + self.t_old_meas)
         return
