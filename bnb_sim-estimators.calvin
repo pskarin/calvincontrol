@@ -1,27 +1,27 @@
 /* Actors */
 clock : misc.Clock(period=0.05)
-outer : control.APIDKalman(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.05, max_q=1000, aname="Outer", estimate=1, log_data=1, log_file="/tmp/log_outer.txt", sig_Q=100, sig_R=0.001)
-inner : control.APIDKalman(tr=1.0, kp=1.0, beta=1.0, period=0.05, max_q=1000, aname="Inner", estimate=1, log_data=1, log_file="/tmp/log_inner.txt", sig_Q=100, sig_R=0.001)
+outer : control.APIDKalman(td=1.0, ti=5.0, tr=10.0, kp=-0.2, kd=-0.2, n=10.0, beta=1.0, period=0.05, max_q=1000, aname="Outer", estimate=0, log_data=1, log_file="/tmp/log_outer.txt", sig_Q=100, sig_R=0.001)
+inner : control.APIDKalman(tr=1.0, kp=1.0, beta=1.0, period=0.05, max_q=1000, aname="Inner", estimate=0, log_data=1, log_file="/tmp/log_inner.txt", sig_Q=100, sig_R=0.001)
 act : io.SimWriter(device="/bbsim_in-0", log_data=1)
 ang : io.SimReader(device="/bbsim_out1-0", scale=0.785, noise=0., log_data=1, log_file="/tmp/log_ang.txt")
 pos : io.SimReader(device="/bbsim_out2-0", scale=0.55, noise=0., log_data=1, log_file="/tmp/log_pos.txt")
 
-dis : misc.PacedValueIterator( period=5.0, values=[-5.0, 5.0])
+dis : misc.PacedValueIterator( period=5.0, values=[-5.0, 5.0], log_data=1, log_file="/tmp/log_ref.txt")
 
 /* For constant delays, 0.08 is somewhat stable for no estimator, but not with the estimator. */
+/*
 posdelay : std.DelayToken(delay=0.08)
 angdelay : std.DelayToken(delay=0.08)
 actdelay : std.DelayToken(delay=0.08)
 delayouter: std.DelayToken(delay=0.08)
 delayinner: std.DelayToken(delay=0.08)
+*/
 
-/*
 posdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=1)
 angdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=2)
 actdelay : std.Delay(delay_data="/tmp/delay_data.txt", name_serial=3)
 delayouter: std.Delay(delay_data="/tmp/delay_data.txt", name_serial=4)
 delayinner: std.Delay(delay_data="/tmp/delay_data.txt", name_serial=5)
-*/
 
 /* Connections */
 clock.tick > ang.tick, pos.tick, dis.tick
